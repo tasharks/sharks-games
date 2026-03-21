@@ -148,7 +148,7 @@ for(let i=0;i<60;i++){const s=document.createElement("div");s.className="star";s
 
 function showScreen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");}
 
-function getWeekStart(){const d=new Date(),day=d.getDay(),diff=d.getDate()-day;const m=new Date(d);m.setDate(diff);return m.toISOString().slice(0,10);}
+function getWeekStart(){const d=new Date();const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);const m=new Date(d);m.setDate(diff);return m.toISOString().slice(0,10);}
 
 async function saveScore(name,score,wave){
   try{await fetch(SUPABASE_URL+"/rest/v1/scores",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({game_id:GAME_ID,player_name:name.toUpperCase(),score,wave,week_start:getWeekStart()})});}catch(e){}
@@ -598,6 +598,8 @@ function drawPlayer(){
 }
 
 async function gameOver(){
+  if(gs&&gs.scoreSaved)return;
+  if(gs)gs.scoreSaved=true;
   cancelAnimationFrame(raf);
   document.getElementById("go-score-val").textContent=gs.score.toLocaleString();
   showScreen("gameover-screen");

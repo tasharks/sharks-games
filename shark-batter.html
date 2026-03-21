@@ -190,7 +190,8 @@ function showScreen(id){document.querySelectorAll(".screen").forEach(s=>s.classL
 
 // ── SUPABASE ─────────────────────────────────
 function getWeekStart(){
-  const d=new Date(),day=d.getDay(),diff=d.getDate()-day;
+  const d=new Date();const day=d.getDay();
+  const diff=d.getDate()-day+(day===0?-6:1);
   const m=new Date(d);m.setDate(diff);return m.toISOString().slice(0,10);
 }
 
@@ -489,6 +490,8 @@ function draw(){
 
 // ── GAME OVER ─────────────────────────────────
 async function gameOver(){
+  if(gs&&gs.scoreSaved)return;
+  if(gs)gs.scoreSaved=true;
   cancelAnimationFrame(raf);
   document.getElementById("go-score-val").textContent=gs.score.toLocaleString();
   showScreen("gameover-screen");

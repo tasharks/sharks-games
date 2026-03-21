@@ -170,7 +170,7 @@ const GAMES=[
 const starsEl=document.getElementById("stars");
 for(let i=0;i<60;i++){const s=document.createElement("div");s.className="star";s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${1.5+Math.random()*3}s;animation-delay:${Math.random()*3}s`;starsEl.appendChild(s);}
 
-function getWeekStart(){const d=new Date();const diff=d.getDate()-d.getDay();const m=new Date(d);m.setDate(diff);return m.toISOString().slice(0,10);}
+function getWeekStart(){const d=new Date();const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);const m=new Date(d);m.setDate(diff);return m.toISOString().slice(0,10);}
 const weekStart=getWeekStart();
 document.getElementById("week-label").textContent="WEEK OF "+new Date(weekStart).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}).toUpperCase();
 

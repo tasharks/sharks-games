@@ -168,7 +168,7 @@ const starsEl=document.getElementById("stars");
 for(let i=0;i<60;i++){const s=document.createElement("div");s.className="star";s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${1.5+Math.random()*3}s;animation-delay:${Math.random()*3}s`;starsEl.appendChild(s);}
 
 function showScreen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");}
-function getWeekStart(){const d=new Date(),day=d.getDay(),diff=d.getDate()-day;const m=new Date(d);m.setDate(diff);return m.toISOString().slice(0,10);}
+function getWeekStart(){const d=new Date();const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);const m=new Date(d);m.setDate(diff);return m.toISOString().slice(0,10);}
 async function saveScore(name,score,wave){try{await fetch(SUPABASE_URL+"/rest/v1/scores",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({game_id:GAME_ID,player_name:name.toUpperCase(),score,wave,week_start:getWeekStart()})});}catch(e){}}
 async function getRank(score){try{const r=await fetch(SUPABASE_URL+"/rest/v1/scores?game_id=eq."+GAME_ID+"&week_start=eq."+getWeekStart()+"&score=gte."+score+"&select=id",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});return(await r.json()).length;}catch(e){return 0;}}
 async function loadLeaderboard(){try{const r=await fetch(SUPABASE_URL+"/rest/v1/scores?game_id=eq."+GAME_ID+"&week_start=eq."+getWeekStart()+"&order=score.desc&limit=10&select=player_name,score,wave",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});const rows=await r.json();const medals=["🥇","🥈","🥉"];const tbody=document.getElementById("lb-body");if(!rows.length){tbody.innerHTML="<tr><td colspan='4' class='lb-empty'>NO SCORES YET!</td></tr>";return;}tbody.innerHTML=rows.map((e,i)=>`<tr><td class="lb-rank">${medals[i]||(i+1)}</td><td class="lb-name">${e.player_name}</td><td class="lb-score">${Number(e.score).toLocaleString()}</td><td class="lb-wave">W${e.wave}</td></tr>`).join("");}catch(e){document.getElementById("lb-body").innerHTML="<tr><td colspan='4' class='lb-empty'>ERROR</td></tr>";}}
@@ -624,6 +624,8 @@ function drawPitcher(){
 }
 
 async function gameOver(){
+  if(gs&&gs.scoreSaved)return;
+  if(gs)gs.scoreSaved=true;
   cancelAnimationFrame(raf);
   document.getElementById("go-score-val").textContent=gs.score.toLocaleString();
   showScreen("gameover-screen");
