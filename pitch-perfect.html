@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PITCH PERFECT</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  :root {
+    --bg:#0a0a1a;--panel:#12122a;--border:#2a2a5a;
+    --teal:#00e5cc;--yellow:#ffe600;--red:#ff3860;
+    --white:#e8e8ff;--dim:#4a4a7a;--green:#00ff88;--orange:#ff8800;
+    --px:"Press Start 2P",monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);font-family:var(--px);color:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);}
+  #stars{position:fixed;inset:0;pointer-events:none;z-index:0;}
+  .star{position:absolute;width:2px;height:2px;background:white;animation:twinkle var(--d) ease-in-out infinite;}
+  @keyframes twinkle{0%,100%{opacity:.1}50%{opacity:.7}}
+  .screen{display:none;width:100%;max-width:520px;flex-direction:column;align-items:center;gap:18px;position:relative;z-index:1;padding:16px;}
+  .screen.active{display:flex;}
+  .shark-icon{font-size:52px;animation:float 2.5s ease-in-out infinite;filter:drop-shadow(0 0 14px rgba(0,229,204,.6));}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .game-title{font-size:clamp(18px,5vw,28px);color:var(--yellow);text-shadow:4px 4px 0 #7a6a00,0 0 30px var(--yellow);text-align:center;letter-spacing:2px;animation:tp 2s ease-in-out infinite;}
+  @keyframes tp{0%,100%{text-shadow:4px 4px 0 #7a6a00,0 0 20px var(--yellow);}50%{text-shadow:4px 4px 0 #7a6a00,0 0 60px var(--yellow),0 0 80px #fa0;}}
+  .subtitle{font-size:clamp(6px,2vw,8px);color:var(--teal);letter-spacing:3px;}
+  .pixel-btn{font-family:var(--px);font-size:clamp(9px,2.5vw,12px);padding:14px 28px;background:var(--teal);color:#000;border:none;cursor:pointer;clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);transition:all .1s;letter-spacing:1px;width:220px;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .pixel-btn:hover,.pixel-btn:active{background:var(--yellow);transform:scale(1.04);box-shadow:0 0 20px var(--yellow);}
+  .pixel-btn.sec{background:transparent;color:var(--teal);border:2px solid var(--teal);font-size:clamp(7px,2vw,9px);padding:10px 20px;}
+  .pixel-btn.sec:hover,.pixel-btn.sec:active{background:var(--teal);color:#000;}
+  .screen-title{font-size:clamp(10px,3vw,14px);color:var(--yellow);text-align:center;text-shadow:2px 2px 0 #7a6a00;}
+  .pixel-input{font-family:var(--px);font-size:clamp(14px,4vw,18px);width:280px;max-width:90vw;padding:14px 16px;background:#000;color:var(--teal);border:3px solid var(--teal);outline:none;letter-spacing:4px;text-transform:uppercase;text-align:center;}
+  .pixel-input:focus{border-color:var(--yellow);color:var(--yellow);}
+  .input-hint{font-size:6px;color:var(--dim);text-align:center;}
+  #game-screen{gap:0;padding:0;}
+  #hud{width:100%;max-width:520px;display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--panel);border-bottom:2px solid var(--border);}
+  .hud-item{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .hud-label{font-size:clamp(5px,1.4vw,6px);color:var(--dim);letter-spacing:1px;}
+  .hud-value{font-size:clamp(10px,3vw,13px);color:var(--yellow);text-shadow:0 0 8px var(--yellow);}
+  #canvas-wrap{width:100%;max-width:520px;position:relative;}
+  #game-canvas{display:block;width:100%;height:auto;border-left:2px solid var(--border);border-right:2px solid var(--border);}
+  #msg-bar{width:100%;max-width:520px;height:26px;background:var(--panel);border-top:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:clamp(5px,1.5vw,7px);color:var(--teal);letter-spacing:1px;}
+  .go-title{font-size:clamp(18px,5.5vw,26px);color:var(--red);text-shadow:3px 3px 0 #7a0020,0 0 30px var(--red);animation:shake .4s ease-in-out;}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  .go-score{font-size:clamp(9px,2.5vw,12px);color:var(--white);text-align:center;}
+  .go-score span{color:var(--yellow);font-size:clamp(16px,5vw,22px);display:block;margin-top:8px;text-shadow:0 0 20px var(--yellow);}
+  .go-rank{font-size:clamp(7px,2vw,9px);color:var(--teal);padding:12px;border:2px solid var(--teal);background:rgba(0,229,204,.05);text-align:center;}
+  .btn-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+  #leaderboard-screen{padding:16px;gap:14px;}
+  .lb-title{font-size:clamp(11px,3.5vw,15px);color:var(--yellow);text-align:center;}
+  .lb-week{font-size:6px;color:var(--dim);text-align:center;}
+  .lb-table{width:100%;border-collapse:collapse;}
+  .lb-table th{font-size:clamp(5px,1.5vw,7px);color:var(--dim);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);letter-spacing:1px;}
+  .lb-table td{font-size:clamp(7px,2vw,9px);padding:10px;border-bottom:1px solid var(--border);}
+  .lb-rank{color:var(--dim);width:40px;}.lb-name{color:var(--white);}.lb-score{color:var(--yellow);text-align:right;}.lb-wave{color:var(--teal);text-align:right;width:60px;}
+  .lb-table tr:nth-child(1) td{color:var(--yellow);}
+  .lb-table tr:nth-child(2) td{color:#c0c0c0;}
+  .lb-table tr:nth-child(3) td{color:#cd7f32;}
+  .lb-empty{text-align:center;font-size:8px;color:var(--dim);padding:30px;}
+  .back-hub{font-size:7px;color:var(--dim);text-align:center;margin-top:4px;}
+  .back-hub a{color:var(--teal);}
+
+  /* Pitch selector buttons */
+  #pitch-bar{
+    width:100%;max-width:520px;display:flex;gap:0;background:var(--panel);
+    border-top:2px solid var(--border);
+  }
+  .pitch-btn{
+    flex:1;font-family:var(--px);font-size:clamp(5px,1.5vw,7px);
+    padding:8px 4px;background:transparent;color:var(--dim);border:none;
+    border-right:1px solid var(--border);cursor:pointer;letter-spacing:1px;
+    transition:all .1s;display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  .pitch-btn:last-child{border-right:none;}
+  .pitch-btn.active{background:rgba(0,229,204,.12);color:var(--teal);}
+  .pitch-btn.locked{opacity:0.3;cursor:not-allowed;}
+  .pitch-btn:not(.locked):hover{background:rgba(0,229,204,.08);}
+  .pitch-key{font-size:clamp(8px,2.5vw,11px);}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+
+<!-- TITLE -->
+<div class="screen active" id="title-screen">
+  <div class="shark-icon">⚾</div>
+  <div class="game-title">PITCH<br>PERFECT</div>
+  <div class="subtitle">⚾ TEL AVIV SHARKS ⚾</div>
+  <button class="pixel-btn" onclick="showScreen('name-screen')"><span>▶</span><span>PLAY GAME</span></button>
+  <button class="pixel-btn sec" onclick="showLeaderboard()">🏆 LEADERBOARD</button>
+  <button class="pixel-btn sec" onclick="window.location.href='index.html'">🏠 GAME HUB</button>
+  <div style="font-size:6px;color:var(--dim);text-align:center;line-height:2.2;">
+    AIM WITH MOUSE OR FINGER<br>
+    TAP / CLICK TO THROW · STRIKE THEM ALL OUT!
+  </div>
+</div>
+
+<!-- NAME -->
+<div class="screen" id="name-screen">
+  <div class="shark-icon" style="font-size:36px">⚾</div>
+  <div class="screen-title">ENTER YOUR NAME</div>
+  <input class="pixel-input" id="player-name" type="text" maxlength="10" placeholder="PLAYER" autocomplete="off" spellcheck="false"/>
+  <div class="input-hint">UP TO 10 CHARACTERS</div>
+  <button class="pixel-btn" onclick="startGame()"><span>⚾</span><span>TAKE THE MOUND!</span></button>
+  <button class="pixel-btn sec" onclick="showScreen('title-screen')">◀ BACK</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="game-screen">
+  <div id="hud">
+    <div class="hud-item"><div class="hud-label">PLAYER</div><div class="hud-value" id="hud-name" style="font-size:clamp(7px,2vw,9px);color:var(--teal);">---</div></div>
+    <div class="hud-item"><div class="hud-label">SCORE</div><div class="hud-value" id="hud-score">0</div></div>
+    <div class="hud-item"><div class="hud-label">WAVE</div><div class="hud-value" id="hud-wave" style="color:var(--teal);">1</div></div>
+    <div class="hud-item"><div class="hud-label">REACHED</div><div class="hud-value" id="hud-reached" style="color:var(--red);">0 / 3</div></div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="game-canvas" width="480" height="400"></canvas>
+  </div>
+  <div id="pitch-bar">
+    <button class="pitch-btn active" id="btn-fastball" onclick="selectPitch(0)">
+      <span class="pitch-key">⚪</span>FASTBALL<br><span style="font-size:5px;color:#888">x1.0 PTS</span>
+    </button>
+    <button class="pitch-btn locked" id="btn-curve" onclick="selectPitch(1)">
+      <span class="pitch-key">🔵</span>CURVE<br><span style="font-size:5px;color:#00e5cc">x2.0 PTS</span>
+    </button>
+    <button class="pitch-btn locked" id="btn-change" onclick="selectPitch(2)">
+      <span class="pitch-key">🟠</span>CHANGE<br><span style="font-size:5px;color:#ff8800">x1.5 PTS</span>
+    </button>
+  </div>
+  <div id="msg-bar">AIM &amp; TAP TO PITCH · DON'T LET BATTERS REACH HOME!</div>
+</div>
+
+<!-- GAME OVER -->
+<div class="screen" id="gameover-screen">
+  <div class="go-title">GAME OVER!</div>
+  <div class="shark-icon" style="font-size:36px">😿</div>
+  <div class="go-score">YOUR SCORE<span id="go-score-val">0</span></div>
+  <div class="go-rank" id="go-rank">SAVING...</div>
+  <div class="btn-row">
+    <button class="pixel-btn" onclick="startGame()"><span>▶</span><span>PLAY AGAIN</span></button>
+    <button class="pixel-btn sec" onclick="showLeaderboard()">🏆 SCORES</button>
+  </div>
+  <button class="pixel-btn sec" onclick="showScreen('title-screen')">HOME</button>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="screen" id="leaderboard-screen">
+  <div class="lb-title">🏆 PITCH PERFECT</div>
+  <div class="lb-week" id="lb-week-label">WEEKLY SCORES</div>
+  <table class="lb-table">
+    <thead><tr><th class="lb-rank">#</th><th class="lb-name">PLAYER</th><th class="lb-score">SCORE</th><th class="lb-wave">WAVE</th></tr></thead>
+    <tbody id="lb-body"></tbody>
+  </table>
+  <div class="btn-row">
+    <button class="pixel-btn" onclick="showScreen('name-screen')"><span>▶</span><span>PLAY</span></button>
+    <button class="pixel-btn sec" onclick="showScreen('title-screen')">HOME</button>
+  </div>
+  <div class="back-hub"><a href="index.html">← BACK TO GAME HUB</a></div>
+</div>
+
+<script>
+const SUPABASE_URL="https://jqopkrkqktfaojxbcgvi.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxb3Brcmtxa3RmYW9qeGJjZ3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNDczMzksImV4cCI6MjA4OTYyMzMzOX0.-1vFBQFdqkKffm7TK8cXdPx2dN0_tb5ibJlM9ymwUYs";
+const GAME_ID="pitch-perfect";
+
+const starsEl=document.getElementById("stars");
+for(let i=0;i<60;i++){const s=document.createElement("div");s.className="star";s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${1.5+Math.random()*3}s;animation-delay:${Math.random()*3}s`;starsEl.appendChild(s);}
+
+function showScreen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");}
+function getWeekStart(){const d=new Date(),day=d.getDay(),diff=d.getDate()-day;const m=new Date(d);m.setDate(diff);return m.toISOString().slice(0,10);}
+async function saveScore(name,score,wave){try{await fetch(SUPABASE_URL+"/rest/v1/scores",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({game_id:GAME_ID,player_name:name.toUpperCase(),score,wave,week_start:getWeekStart()})});}catch(e){}}
+async function getRank(score){try{const r=await fetch(SUPABASE_URL+"/rest/v1/scores?game_id=eq."+GAME_ID+"&week_start=eq."+getWeekStart()+"&score=gte."+score+"&select=id",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});return(await r.json()).length;}catch(e){return 0;}}
+async function loadLeaderboard(){try{const r=await fetch(SUPABASE_URL+"/rest/v1/scores?game_id=eq."+GAME_ID+"&week_start=eq."+getWeekStart()+"&order=score.desc&limit=10&select=player_name,score,wave",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});const rows=await r.json();const medals=["🥇","🥈","🥉"];const tbody=document.getElementById("lb-body");if(!rows.length){tbody.innerHTML="<tr><td colspan='4' class='lb-empty'>NO SCORES YET!</td></tr>";return;}tbody.innerHTML=rows.map((e,i)=>`<tr><td class="lb-rank">${medals[i]||(i+1)}</td><td class="lb-name">${e.player_name}</td><td class="lb-score">${Number(e.score).toLocaleString()}</td><td class="lb-wave">W${e.wave}</td></tr>`).join("");}catch(e){document.getElementById("lb-body").innerHTML="<tr><td colspan='4' class='lb-empty'>ERROR</td></tr>";}}
+function showLeaderboard(){showScreen("leaderboard-screen");document.getElementById("lb-week-label").textContent="WEEK OF "+new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}).toUpperCase();loadLeaderboard();}
+
+const canvas=document.getElementById("game-canvas");
+const ctx=canvas.getContext("2d");
+const CW=480,CH=400;
+
+// Pitcher position
+const PITCHER_X=CW/2, PITCHER_Y=CH-50;
+const HOME_PLATE_Y=CH-20;
+const MAX_REACHED=3;
+
+// Pitch types
+const PITCH_DEFS=[
+  {name:"FASTBALL",color:"#ffffff",speed:7,  curve:0,   curveDir:0,  label:"⚪ FASTBALL", mult:1.0, difficulty:"EASY"},
+  {name:"CURVE",   color:"#00e5cc",speed:5,  curve:0.18,curveDir:1,  label:"🔵 CURVEBALL",mult:2.0, difficulty:"HARD"},
+  {name:"CHANGE",  color:"#ff8800",speed:3.5,curve:0.05,curveDir:-1, label:"🟠 CHANGEUP", mult:1.5, difficulty:"MED"},
+];
+
+// Batter types
+const BATTER_TYPES=[
+  {name:"CONTACT", color:"#4a8aff", hp:1, speed:0.4, pts:100, w:28,h:36, label:"C"},
+  {name:"POWER",   color:"#ff8800", hp:2, speed:0.3, pts:200, w:32,h:40, label:"P"},
+  {name:"CLEANUP", color:"#ff3860", hp:3, speed:0.5, pts:350, w:36,h:44, label:"★"},
+];
+
+let gs,raf,playerName="PLAYER";
+let aimX=CW/2,aimY=CH/2;
+let selectedPitch=0;
+
+function selectPitch(i){
+  if(!gs||i>=gs.unlockedPitches)return;
+  selectedPitch=i;
+  document.querySelectorAll(".pitch-btn").forEach((b,idx)=>b.classList.toggle("active",idx===i));
+}
+
+function initGame(){
+  cancelAnimationFrame(raf);
+  selectedPitch=0;
+  document.querySelectorAll(".pitch-btn").forEach((b,i)=>{
+    b.classList.toggle("active",i===0);
+    b.classList.toggle("locked",i>0);
+  });
+  gs={
+    wave:1,score:0,reached:0,combo:0,
+    batters:[],pitches:[],particles:[],
+    flashMsg:null,
+    spawnTimer:0,spawnInterval:120,
+    unlockedPitches:1,
+    waveKills:0,waveTarget:8,
+    strikeouts:0,
+    spawning:false,waveSpawned:false,
+  };
+  updateHUD();
+  spawnWave();
+  loop();
+}
+
+function startGame(){
+  const inp=document.getElementById("player-name").value.trim().replace(/[^a-zA-Z0-9]/g,"").substring(0,10);
+  playerName=inp||"PLAYER";
+  document.getElementById("hud-name").textContent=playerName.substring(0,8);
+  showScreen("game-screen");
+  initGame();
+}
+
+function updateHUD(){
+  document.getElementById("hud-score").textContent=gs.score.toLocaleString();
+  document.getElementById("hud-wave").textContent=gs.wave;
+  document.getElementById("hud-reached").textContent=gs.reached+" / "+MAX_REACHED;
+}
+
+// Spawn a formation of batters
+function spawnWave(){
+  gs.waveSpawned=false; // reset, will set true once batters are pushed
+  const cols=Math.min(4+Math.floor((gs.wave-1)/2),6);
+  const rows=Math.min(1+Math.floor((gs.wave-1)/2),3);
+  const bW=52,bH=48,gapX=8,gapY=14;
+  const totalW=cols*bW+(cols-1)*gapX;
+  const startX=(CW-totalW)/2;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      // Pick batter type based on wave
+      const roll=Math.random();
+      let type=BATTER_TYPES[0];
+      if(gs.wave>=4&&roll>0.65)type=BATTER_TYPES[1];
+      if(gs.wave>=7&&roll>0.80)type=BATTER_TYPES[2];
+      gs.batters.push({
+        x:startX+c*(bW+gapX)+bW/2,
+        y:-60-r*(bH+gapY),
+        w:type.w,h:type.h,
+        type,hp:type.hp,maxHp:type.hp,
+        speed:type.speed+(gs.wave-1)*0.02,
+        hit:0,
+        dead:false,
+      });
+    }
+  }
+  gs.waveSpawned=true;
+}
+
+// Aim tracking
+function getCanvasPos(clientX,clientY){
+  const rect=canvas.getBoundingClientRect();
+  return{x:(clientX-rect.left)*(CW/rect.width),y:(clientY-rect.top)*(CH/rect.height)};
+}
+canvas.addEventListener("mousemove",e=>{const p=getCanvasPos(e.clientX,e.clientY);aimX=p.x;aimY=p.y;});
+canvas.addEventListener("touchmove",e=>{e.preventDefault();const p=getCanvasPos(e.touches[0].clientX,e.touches[0].clientY);aimX=p.x;aimY=p.y;},{passive:false});
+
+function throwPitch(tx,ty){
+  if(!gs)return;
+  if(gs.pitches.length>=6)return; // max 6 in air at once
+  const now=Date.now();
+  if(!gs.lastThrow)gs.lastThrow=0;
+  if(now-gs.lastThrow<250)return;
+  gs.lastThrow=now;
+  const dx=tx-PITCHER_X,dy=ty-PITCHER_Y;
+  // If clicking below pitcher or too close, aim straight up
+  const targetX=tx,targetY=Math.min(ty,PITCHER_Y-40);
+  const dx2=targetX-PITCHER_X,dy2=targetY-PITCHER_Y;
+  const dist=Math.sqrt(dx2*dx2+dy2*dy2)||1;
+  const def=PITCH_DEFS[selectedPitch];
+  const spd=def.speed;
+  const px=-dy2/dist,py=dx2/dist;
+  gs.pitches.push({
+    x:PITCHER_X,y:PITCHER_Y,
+    vx:dx2/dist*spd,vy:dy2/dist*spd,
+    curve:def.curve,curveDir:def.curveDir,
+    px,py,
+    color:def.color,name:def.name,
+    r:7,trail:[],age:0,
+  });
+}
+
+canvas.addEventListener("click",e=>{const p=getCanvasPos(e.clientX,e.clientY);throwPitch(p.x,p.y);});
+canvas.addEventListener("touchstart",e=>{
+  e.preventDefault();
+  const p=getCanvasPos(e.touches[0].clientX,e.touches[0].clientY);
+  aimX=p.x;aimY=p.y;
+  throwPitch(p.x,p.y);
+},{passive:false});
+
+function spawnParticles(x,y,color,count){
+  for(let i=0;i<count;i++)
+    gs.particles.push({x,y,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6-2,life:25+Math.random()*15,color,size:3+Math.random()*3});
+}
+
+// ── LOOP ─────────────────────────────────────
+function loop(){update();draw();raf=requestAnimationFrame(loop);}
+
+function update(){
+  if(!gs)return;
+  if(gs.flashMsg){gs.flashMsg.ttl--;if(gs.flashMsg.ttl<=0)gs.flashMsg=null;}
+
+  // Move batters down
+  gs.batters.forEach(b=>{
+    if(b.dead)return;
+    b.y+=b.speed;
+    if(b.hit>0)b.hit--;
+    // Reached home plate
+    if(b.y>HOME_PLATE_Y){
+      b.dead=true;
+      gs.reached++;
+      gs.combo=0;
+      spawnParticles(b.x,HOME_PLATE_Y,"#ff3860",10);
+      gs.flashMsg={text:"BATTER SCORES!",ttl:60,color:"#ff3860"};
+      updateHUD();
+      if(gs.reached>=MAX_REACHED){gameOver();return;}
+    }
+  });
+  gs.batters=gs.batters.filter(b=>!b.dead);
+
+  // Move pitches
+  gs.pitches.forEach(p=>{
+    p.trail.push({x:p.x,y:p.y});
+    if(p.trail.length>8)p.trail.shift();
+    p.x+=p.vx;
+    p.y+=p.vy;
+    p.vx+=p.curveDir*p.curve*p.px*0.12;
+    p.vy+=p.curveDir*p.curve*p.py*0.12;
+    p.age++;
+
+    // Hit detection vs batters
+    gs.batters.forEach(b=>{
+      if(b.dead)return;
+      if(Math.abs(p.x-b.x)<b.w/2+p.r&&Math.abs(p.y-b.y)<b.h/2+p.r){
+        p.spent=true;
+        b.hp--;
+        b.hit=12;
+        gs.combo++;
+        if(b.hp<=0){
+          b.dead=true;
+          const pitchMult=PITCH_DEFS[selectedPitch].mult;
+          const earned=Math.floor(b.type.pts*gs.combo*pitchMult);
+          gs.score+=earned;
+          gs.waveKills++;
+          gs.strikeouts++;
+          spawnParticles(b.x,b.y,b.type.color,14);
+          const msg=gs.combo>=3?"COMBO x"+gs.combo+"! +"+earned:"STRIKEOUT! +"+earned;
+          gs.flashMsg={text:msg,ttl:70,color:gs.combo>=3?"#ffe600":"#00ff88"};
+          updateHUD();
+        } else {
+          spawnParticles(b.x,b.y,"#ffffff",6);
+        }
+      }
+    });
+
+    if(p.y<-20||p.x<-30||p.x>CW+30||p.y>CH+30||p.age>180)p.spent=true;
+  });
+  gs.pitches=gs.pitches.filter(p=>!p.spent);
+
+  // Particles
+  gs.particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.2;p.life--;});
+  gs.particles=gs.particles.filter(p=>p.life>0);
+
+  // Wave clear — only trigger once after batters have actually been on screen
+  if(!gs.spawning&&gs.waveSpawned){
+    const aliveBatters=gs.batters.filter(b=>!b.dead);
+    if(aliveBatters.length===0&&gs.pitches.length===0){
+      gs.batters=[];
+      gs.spawning=true;
+      gs.waveSpawned=false;
+      nextWave();
+    }
+  }
+
+  // Unlock pitches
+  if(gs.wave>=2&&gs.unlockedPitches<2){
+    gs.unlockedPitches=2;
+    document.getElementById("btn-curve").classList.remove("locked");
+    gs.flashMsg={text:"CURVEBALL UNLOCKED!",ttl:100,color:"#00e5cc"};
+  }
+  if(gs.wave>=3&&gs.unlockedPitches<3){
+    gs.unlockedPitches=3;
+    document.getElementById("btn-change").classList.remove("locked");
+    gs.flashMsg={text:"CHANGEUP UNLOCKED!",ttl:100,color:"#ff8800"};
+  }
+}
+
+function nextWave(){
+  gs.wave++;gs.waveKills=0;gs.combo=0;
+  gs.waveTarget=8+gs.wave*2;
+  gs.flashMsg={text:"WAVE "+gs.wave+"!",ttl:120,color:"#ffe600"};
+  updateHUD();
+  setTimeout(()=>{spawnWave();gs.spawning=false;},800);
+}
+
+// ── DRAW ─────────────────────────────────────
+function draw(){
+  if(!gs)return;
+
+  // Background — baseball field top-down-ish
+  ctx.fillStyle="#0a1a0a";ctx.fillRect(0,0,CW,CH);
+
+  // Outfield grass
+  const grassGrd=ctx.createLinearGradient(0,0,0,CH);
+  grassGrd.addColorStop(0,"#0d2d0d");grassGrd.addColorStop(1,"#1a4a1a");
+  ctx.fillStyle=grassGrd;ctx.fillRect(0,0,CW,CH);
+
+  // Field lines perspective
+  ctx.strokeStyle="rgba(255,255,255,0.08)";ctx.lineWidth=1;
+  for(let i=0;i<8;i++){
+    ctx.beginPath();ctx.moveTo(i*(CW/7),0);ctx.lineTo(CW/2,CH);ctx.stroke();
+  }
+
+  // Pitcher's mound
+  ctx.fillStyle="#8B6914";ctx.beginPath();ctx.ellipse(PITCHER_X,PITCHER_Y,22,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#7a5510";ctx.beginPath();ctx.ellipse(PITCHER_X,PITCHER_Y,9,4,0,0,Math.PI*2);ctx.fill();
+
+  // Home plate area
+  ctx.fillStyle="rgba(139,105,20,0.4)";ctx.beginPath();ctx.ellipse(CW/2,HOME_PLATE_Y,60,12,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="white";
+  ctx.beginPath();ctx.moveTo(CW/2,HOME_PLATE_Y-8);ctx.lineTo(CW/2+10,HOME_PLATE_Y);ctx.lineTo(CW/2+8,HOME_PLATE_Y+6);ctx.lineTo(CW/2-8,HOME_PLATE_Y+6);ctx.lineTo(CW/2-10,HOME_PLATE_Y);ctx.closePath();ctx.fill();
+
+  // Foul lines
+  ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(CW/2,HOME_PLATE_Y);ctx.lineTo(0,0);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(CW/2,HOME_PLATE_Y);ctx.lineTo(CW,0);ctx.stroke();
+
+  // Danger zone line (where batters become urgent)
+  const dangerY=CH-80;
+  ctx.strokeStyle="rgba(255,56,96,0.3)";ctx.lineWidth=1;ctx.setLineDash([8,6]);
+  ctx.beginPath();ctx.moveTo(0,dangerY);ctx.lineTo(CW,dangerY);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font='5px "Press Start 2P",monospace';ctx.fillStyle="rgba(255,56,96,0.4)";ctx.textAlign="center";
+  ctx.fillText("DANGER ZONE",CW/2,dangerY-5);ctx.textAlign="left";
+
+  // Draw batters
+  gs.batters.forEach(b=>{
+    const flash=b.hit>0&&Math.floor(b.hit/2)%2===0;
+
+    // HP bar
+    const barW=b.w+4,barH=4;
+    ctx.fillStyle="rgba(0,0,0,0.5)";ctx.fillRect(b.x-barW/2,b.y-b.h/2-8,barW,barH);
+    ctx.fillStyle=b.hp===b.maxHp?"#00ff88":b.hp===1?"#ff3860":"#ffe600";
+    ctx.fillRect(b.x-barW/2,b.y-b.h/2-8,barW*(b.hp/b.maxHp),barH);
+
+    // Body
+    ctx.fillStyle=flash?"#ffffff":b.type.color;
+    ctx.globalAlpha=b.dead?0.3:1;
+    ctx.fillRect(b.x-b.w/2,b.y-b.h/2,b.w,b.h);
+
+    // Jersey shine
+    ctx.fillStyle="rgba(255,255,255,0.15)";
+    ctx.fillRect(b.x-b.w/2,b.y-b.h/2,b.w,5);
+
+    // Helmet
+    ctx.fillStyle="#111";
+    ctx.beginPath();ctx.arc(b.x,b.y-b.h/2-5,9,Math.PI,0);ctx.fill();
+    ctx.fillRect(b.x-9,b.y-b.h/2-5,18,5);
+
+    // Face
+    ctx.fillStyle="#f4a460";ctx.beginPath();ctx.arc(b.x,b.y-b.h/2-2,7,0,Math.PI*2);ctx.fill();
+
+    // Bat
+    ctx.fillStyle="#8B4513";
+    ctx.save();ctx.translate(b.x+b.w/2+4,b.y);ctx.rotate(0.3);
+    ctx.fillRect(-3,-18,5,36);ctx.restore();
+
+    // Type label
+    ctx.fillStyle="white";ctx.font='bold 7px "Press Start 2P",monospace';ctx.textAlign="center";
+    ctx.fillText(b.type.label,b.x,b.y+5);ctx.textAlign="left";
+
+    ctx.globalAlpha=1;
+  });
+
+  // Draw pitches
+  gs.pitches.forEach(p=>{
+    // Trail
+    p.trail.forEach((t,i)=>{
+      ctx.globalAlpha=(i/p.trail.length)*0.35;
+      ctx.fillStyle=p.color;
+      ctx.beginPath();ctx.arc(t.x,t.y,p.r*0.6,0,Math.PI*2);ctx.fill();
+    });
+    ctx.globalAlpha=1;
+    // Glow
+    const grd=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*2.5);
+    grd.addColorStop(0,p.color+"88");grd.addColorStop(1,"transparent");
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(p.x,p.y,p.r*2.5,0,Math.PI*2);ctx.fill();
+    // Ball
+    ctx.fillStyle="#f5f5dc";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#cc2222";ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(p.x-1.5,p.y,p.r*.5,-.6,.6);ctx.stroke();
+    ctx.beginPath();ctx.arc(p.x+1.5,p.y,p.r*.5,Math.PI-.6,Math.PI+.6);ctx.stroke();
+  });
+
+  // Draw pitcher
+  drawPitcher();
+
+  // Aim line
+  if(true){
+    const dx=aimX-PITCHER_X,dy=aimY-PITCHER_Y;
+    const dist=Math.sqrt(dx*dx+dy*dy)||1;
+    const def=PITCH_DEFS[selectedPitch];
+    ctx.strokeStyle=def.color+"55";ctx.lineWidth=1;ctx.setLineDash([4,6]);
+    ctx.beginPath();ctx.moveTo(PITCHER_X,PITCHER_Y-20);ctx.lineTo(PITCHER_X+dx/dist*80,PITCHER_Y-20+dy/dist*80);ctx.stroke();
+    ctx.setLineDash([]);
+    // Aim dot
+    ctx.fillStyle=def.color;ctx.globalAlpha=0.7;
+    ctx.beginPath();ctx.arc(aimX,aimY,6,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  // Particles
+  gs.particles.forEach(p=>{ctx.globalAlpha=p.life/40;ctx.fillStyle=p.color;ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);});
+  ctx.globalAlpha=1;
+
+  // Flash message
+  if(gs.flashMsg){
+    ctx.globalAlpha=Math.min(1,gs.flashMsg.ttl/25);
+    ctx.font='bold 14px "Press Start 2P",monospace';ctx.textAlign="center";
+    ctx.fillStyle=gs.flashMsg.color;ctx.shadowColor=gs.flashMsg.color;ctx.shadowBlur=18;
+    ctx.fillText(gs.flashMsg.text,CW/2,CH/2-30);
+    ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.textAlign="left";
+  }
+
+  // Always-visible throw prompt
+  const canThrow=!gs.lastThrow||(Date.now()-gs.lastThrow>=300);
+  if(canThrow&&gs.batters.length>0){
+    const blink=Math.floor(Date.now()/500)%2===0;
+    if(blink){
+      ctx.font='6px "Press Start 2P",monospace';
+      ctx.fillStyle="rgba(0,229,204,0.7)";ctx.textAlign="center";
+      ctx.fillText("⚾ TAP TO PITCH!",CW/2,CH-5);ctx.textAlign="left";
+    }
+  }
+
+  // Combo indicator
+  if(gs.combo>=3){
+    ctx.font='7px "Press Start 2P",monospace';ctx.fillStyle="#ffe600";ctx.textAlign="right";
+    ctx.fillText("🔥 COMBO x"+gs.combo,CW-8,20);ctx.textAlign="left";
+  }
+
+  // Active pitch label top-left
+  const def=PITCH_DEFS[selectedPitch];
+  ctx.font='6px "Press Start 2P",monospace';ctx.fillStyle=def.color;
+  ctx.fillText(def.label,8,18);
+  ctx.font='5px "Press Start 2P",monospace';ctx.fillStyle="rgba(255,255,255,0.5)";
+  ctx.fillText("x"+def.mult+" PTS",8,30);
+
+  // Strikeout counter
+  ctx.font='6px "Press Start 2P",monospace';ctx.fillStyle="rgba(0,255,136,0.6)";ctx.textAlign="center";
+  ctx.fillText("K: "+gs.strikeouts,CW/2,18);ctx.textAlign="left";
+}
+
+function drawPitcher(){
+  const px=PITCHER_X,py=PITCHER_Y-20;
+  // Winding up — arm raised
+  ctx.fillStyle="#003087"; // Sharks blue
+  ctx.fillRect(px-10,py-14,20,18);
+  ctx.fillStyle="white";ctx.font='5px "Press Start 2P",monospace';ctx.textAlign="center";
+  ctx.fillText("TA",px,py-2);ctx.textAlign="left";
+  // Legs
+  ctx.fillStyle="#1a3a6a";ctx.fillRect(px-8,py+4,7,14);ctx.fillRect(px+2,py+4,7,14);
+  // Cleats
+  ctx.fillStyle="#111";ctx.fillRect(px-10,py+16,9,4);ctx.fillRect(px+2,py+16,9,4);
+  // Pitching arm (raised)
+  ctx.fillStyle="#003087";ctx.fillRect(px+10,py-18,12,6);
+  // Glove arm
+  ctx.fillStyle="#8B4513";ctx.beginPath();ctx.arc(px+20,py-16,7,0,Math.PI*2);ctx.fill();
+  // Head
+  ctx.fillStyle="#f4a460";ctx.beginPath();ctx.arc(px,py-20,9,0,Math.PI*2);ctx.fill();
+  // Cap
+  ctx.fillStyle="#003087";ctx.fillRect(px-10,py-30,20,8);ctx.fillRect(px+8,py-30,10,5);
+  // Eyes
+  ctx.fillStyle="#000";ctx.fillRect(px+2,py-22,3,3);
+}
+
+async function gameOver(){
+  cancelAnimationFrame(raf);
+  document.getElementById("go-score-val").textContent=gs.score.toLocaleString();
+  showScreen("gameover-screen");
+  const rankEl=document.getElementById("go-rank");rankEl.textContent="SAVING...";
+  await saveScore(playerName,gs.score,gs.wave);
+  const rank=await getRank(gs.score);
+  if(rank===1)rankEl.textContent="🏆 NEW WEEKLY RECORD!";
+  else if(rank<=3)rankEl.textContent="⭐ RANK #"+rank+" THIS WEEK!";
+  else if(rank>0)rankEl.textContent="RANK #"+rank+" THIS WEEK";
+  else rankEl.textContent="SCORE SAVED!";
+}
+
+document.getElementById("player-name").addEventListener("keydown",e=>{if(e.key==="Enter")startGame();});
+
+// Keyboard shortcuts for pitches
+document.addEventListener("keydown",e=>{
+  if(e.key==="1")selectPitch(0);
+  if(e.key==="2")selectPitch(1);
+  if(e.key==="3")selectPitch(2);
+});
+</script>
+</body>
+</html>
