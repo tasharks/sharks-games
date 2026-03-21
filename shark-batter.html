@@ -383,26 +383,30 @@ function update(){
     gs.bricks.forEach(brick=>{
       if(!brick.alive)return;
       if(ball.x+ball.r>brick.x&&ball.x-ball.r<brick.x+brick.w&&ball.y+ball.r>brick.y&&ball.y-ball.r<brick.y+brick.h){
-        brick.hp--;gs.combo++;gs.score+=10*gs.combo;updateHUD();
+        brick.hp--;gs.combo++;
+        const frenzyMult=gs.frenzy>0?5:1;
+        gs.score+=10*gs.combo*frenzyMult;updateHUD();
         const oL=(ball.x+ball.r)-brick.x,oR=(brick.x+brick.w)-(ball.x-ball.r);
         const oT=(ball.y+ball.r)-brick.y,oB=(brick.y+brick.h)-(ball.y-ball.r);
         const mo=Math.min(oL,oR,oT,oB);
         if(mo===oT||mo===oB)ball.vy*=-1;else ball.vx*=-1;
         if(brick.hp<=0){
           brick.alive=false;spawnP(brick.x+brick.w/2,brick.y+brick.h/2,brick.color,12);
-          // Explosive power-up — destroy adjacent bricks
+          // Explosive power-up — destroy all adjacent bricks at once
           if(gs.explosive>0){
             gs.explosive--;
+            let explodeCount=0;
             gs.bricks.forEach(nb=>{
               if(!nb.alive)return;
-              if(Math.abs(nb.x-brick.x)<(nb.w+brick.w)*0.8&&Math.abs(nb.y-brick.y)<(nb.h+brick.h)*0.8){
+              const adjacent=Math.abs(nb.x-brick.x)<(nb.w+brick.w)*0.85&&Math.abs(nb.y-brick.y)<(nb.h+brick.h)*0.85;
+              if(adjacent){
                 nb.alive=false;
-                const pts=gs.frenzy>0?50*5:50;
-                gs.score+=pts;
-                spawnP(nb.x+nb.w/2,nb.y+nb.h/2,nb.color,8);
+                explodeCount++;
+                gs.score+=50*frenzyMult;
+                spawnP(nb.x+nb.w/2,nb.y+nb.h/2,nb.color,10);
               }
             });
-            gs.flashMsg={text:"💥 BOOM!",ttl:60,color:"#ff8800"};
+            gs.flashMsg={text:"💥 BOOM! +"+explodeCount+" BRICKS",ttl:80,color:"#ff8800"};
             updateHUD();
           }
           if(Math.random()<0.18){const pu=PU_TYPES[Math.floor(Math.random()*5)];gs.powerups.push({x:brick.x+brick.w/2-14,y:brick.y,w:28,h:20,vy:1.5,...pu});}}
@@ -460,9 +464,10 @@ function draw(){
   ctx.fillStyle="rgba(255,255,255,.3)";ctx.fillRect(gs.bat.x+4,gs.bat.y,gs.bat.w-8,3);
 
   gs.balls.forEach(ball=>{
-    const grd=ctx.createRadialGradient(ball.x,ball.y,0,ball.x,ball.y,ball.r*2.5);
-    grd.addColorStop(0,"rgba(255,240,200,.4)");grd.addColorStop(1,"transparent");
-    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r*2.5,0,Math.PI*2);ctx.fill();
+    const grd=ctx.createRadialGradient(ball.x,ball.y,0,ball.x,ball.y,ball.r*(gs.speedBall>0?4:2.5));
+    grd.addColorStop(0,gs.speedBall>0?"rgba(255,80,0,.7)":"rgba(255,240,200,.4)");
+    grd.addColorStop(1,"transparent");
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r*(gs.speedBall>0?4:2.5),0,Math.PI*2);ctx.fill();
     ctx.fillStyle=gs.speedBall>0?"#ff6622":"#f5f5dc";ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle="#cc2222";ctx.lineWidth=1.2;
     ctx.beginPath();ctx.arc(ball.x-1.5,ball.y,ball.r*.5,-.6,.6);ctx.stroke();
