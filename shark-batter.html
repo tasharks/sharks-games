@@ -347,7 +347,6 @@ function update(){
   gs.bat.x=Math.max(0,Math.min(CW-batW,pointerX-batW/2));
   if(gs.wideBat>0)gs.wideBat--;
   if(gs.speedBall>0)gs.speedBall--;
-  if(gs.explosive>0)gs.explosive--;
   if(gs.frenzy>0)gs.frenzy--;
   if(gs.flashMsg){gs.flashMsg.ttl--;if(gs.flashMsg.ttl<=0)gs.flashMsg=null;}
   const sm=gs.speedBall>0?1.6:1;
@@ -431,9 +430,14 @@ function update(){
 
 function applyPU(type){
   if(type==="wide")gs.wideBat=400;
-  else if(type==="multi"){const b=gs.balls[0]||{x:CW/2,y:CH/2,vx:2,vy:-2,r:7,launched:true};gs.balls.push({x:b.x,y:b.y,vx:-b.vx*.9,vy:b.vy,r:7,launched:true});}
-  else if(type==="slow"){if(gs.slowBall<=0)gs.slowBall=Math.max(60,180-(gs.wave-1)*15);}
-  else if(type==="points"){gs.score+=500;updateHUD();}
+  else if(type==="multi"){
+    const b=gs.balls[0]||{x:CW/2,y:CH/2,vx:2,vy:-2,r:7,launched:true};
+    gs.balls.push({x:b.x,y:b.y,vx:-b.vx*.9,vy:b.vy,r:7,launched:true});
+    if(gs.balls.length<4)gs.balls.push({x:b.x,y:b.y,vx:b.vx*.8,vy:b.vy*1.1,r:7,launched:true});
+  }
+  else if(type==="speed"){gs.speedBall=480;}
+  else if(type==="explode"){gs.explosive=3;}
+  else if(type==="frenzy"){gs.frenzy=480;}
 }
 function spawnP(x,y,color,count){for(let i=0;i<count;i++)gs.particles.push({x,y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5-1,life:30+Math.random()*20,color,size:3+Math.random()*3});}
 
