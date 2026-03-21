@@ -72,10 +72,7 @@
   <button class="pixel-btn" onclick="showScreen('name-screen')"><span>▶</span><span>PLAY GAME</span></button>
   <button class="pixel-btn sec" onclick="showLeaderboard()">🏆 LEADERBOARD</button>
   <button class="pixel-btn sec" onclick="window.location.href='index.html'">🏠 GAME HUB</button>
-  <div style="font-size:6px;color:var(--dim);text-align:center;line-height:2.2;">
-    WATCH THE BALL FLY TOWARD YOU<br>
-    PRESS SPACE OR TAP TO SWING!
-  </div>
+  <div style="font-size:6px;color:var(--dim);text-align:center;line-height:2.2;">WATCH THE PITCH · TAP OR SPACE TO SWING<br>HIT HOME RUNS TO ADVANCE EACH ROUND!</div>
 </div>
 
 <div class="screen" id="name-screen">
@@ -97,7 +94,7 @@
   <div id="canvas-wrap">
     <canvas id="game-canvas" width="480" height="460"></canvas>
   </div>
-  <div id="msg-bar">PRESS SPACE OR TAP TO SWING WHEN BALL ARRIVES!</div>
+  <div id="msg-bar">WATCH THE BALL · TAP OR PRESS SPACE TO SWING!</div>
 </div>
 
 <div class="screen" id="gameover-screen">
@@ -131,10 +128,8 @@ const SUPABASE_URL="https://jqopkrkqktfaojxbcgvi.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxb3Brcmtxa3RmYW9qeGJjZ3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNDczMzksImV4cCI6MjA4OTYyMzMzOX0.-1vFBQFdqkKffm7TK8cXdPx2dN0_tb5ibJlM9ymwUYs";
 const GAME_ID="homerun-derby";
 
-// Stars
 const starsEl=document.getElementById("stars");
 for(let i=0;i<60;i++){const s=document.createElement("div");s.className="star";s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${1.5+Math.random()*3}s;animation-delay:${Math.random()*3}s`;starsEl.appendChild(s);}
-
 function showScreen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");}
 function getWeekStart(){const d=new Date(),day=d.getDay(),diff=d.getDate()-day;const m=new Date(d);m.setDate(diff);return m.toISOString().slice(0,10);}
 async function saveScore(name,score,round){try{await fetch(SUPABASE_URL+"/rest/v1/scores",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({game_id:GAME_ID,player_name:name.toUpperCase(),score,wave:round,week_start:getWeekStart()})});}catch(e){}}
@@ -142,51 +137,55 @@ async function getRank(score){try{const r=await fetch(SUPABASE_URL+"/rest/v1/sco
 async function loadLeaderboard(){try{const r=await fetch(SUPABASE_URL+"/rest/v1/scores?game_id=eq."+GAME_ID+"&week_start=eq."+getWeekStart()+"&order=score.desc&limit=10&select=player_name,score,wave",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});const rows=await r.json();const medals=["🥇","🥈","🥉"];const tbody=document.getElementById("lb-body");if(!rows.length){tbody.innerHTML="<tr><td colspan='4' class='lb-empty'>NO SCORES YET!</td></tr>";return;}tbody.innerHTML=rows.map((e,i)=>`<tr><td class="lb-rank">${medals[i]||(i+1)}</td><td class="lb-name">${e.player_name}</td><td class="lb-score">${Number(e.score).toLocaleString()}</td><td class="lb-wave">R${e.wave}</td></tr>`).join("");}catch(e){document.getElementById("lb-body").innerHTML="<tr><td colspan='4' class='lb-empty'>ERROR</td></tr>";}}
 function showLeaderboard(){showScreen("leaderboard-screen");document.getElementById("lb-week-label").textContent="WEEK OF "+new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}).toUpperCase();loadLeaderboard();}
 
-// Canvas
 const canvas=document.getElementById("game-canvas");
 const ctx=canvas.getContext("2d");
 const CW=480,CH=460;
-
-// View constants
-const VANISH_X=CW/2, VANISH_Y=155;
-const ZONE_CX=CW/2, ZONE_CY=310;
-const ZONE_W=100, ZONE_H=120;
+const VANISH_X=CW/2,VANISH_Y=155;
+const ZONE_CX=CW/2,ZONE_CY=310;
+const ZONE_W=100,ZONE_H=120;
 
 let gs,raf,playerName="PLAYER";
 
-// Pitch definitions — frames = how long pitch takes to arrive
+// Pitch types — speed = frames to arrive (lower = faster)
 const PITCHES=[
-  // Fastball: fast, straight, small ball stays small then EXPLODES in size at the end
-  {name:"FASTBALL", color:"#ffffff", frames:72,  driftX:0,   driftY:0,  easing:"fast",   desc:"STRAIGHT HEAT"},
-  // Curveball: slow start, drifts hard sideways, drops late
-  {name:"CURVEBALL",color:"#00e5cc", frames:115, driftX:48,  driftY:22, easing:"curve",  desc:"BREAKS HARD"},
-  // Changeup: looks like fastball speed then SLOWS dramatically mid-flight
-  {name:"CHANGEUP", color:"#ff8800", frames:145, driftX:8,   driftY:8,  easing:"change", desc:"SPEED TRICK"},
-  // Slider: straight until 70% then cuts sharply late
-  {name:"SLIDER",   color:"#ff3860", frames:88,  driftX:-42, driftY:5,  easing:"slider", desc:"LATE CUT"},
+  {name:"FASTBALL", color:"#ffffff",frames:75, driftX:0,  driftY:0,  easing:"fast",   desc:"STRAIGHT HEAT"},
+  {name:"CURVEBALL",color:"#00e5cc",frames:105,driftX:48, driftY:22, easing:"curve",  desc:"BREAKS HARD"},
+  {name:"CHANGEUP", color:"#ff8800",frames:130,driftX:8,  driftY:8,  easing:"change", desc:"SPEED TRICK"},
+  {name:"SLIDER",   color:"#ff3860",frames:85, driftX:-42,driftY:5,  easing:"slider", desc:"LATE CUT"},
 ];
 
 function getPitchPool(round){
-  if(round===1)return [PITCHES[0]];
-  if(round===2)return [PITCHES[0],PITCHES[1]];
+  if(round===1)return[PITCHES[0]];
+  if(round===2)return[PITCHES[0],PITCHES[1]];
   if(round===3)return PITCHES.slice(0,3);
   return PITCHES;
 }
 
+// Round config: {hrTarget, maxOuts, pitchSpeedMult}
+function getRoundConfig(round){
+  return{
+    hrTarget:2+round,           // R1=3, R2=4, R3=5...
+    maxOuts:3,
+    speedMult:1+(round-1)*0.08, // each round pitches 8% faster
+  };
+}
+
 function initGame(){
   cancelAnimationFrame(raf);
+  const cfg=getRoundConfig(1);
   gs={
-    round:1, score:0, outs:0, maxOuts:3, combo:0,
-    hrCount:0, hrTarget:3,
-    // States: waiting, announcing, pitching, result
-    state:"waiting", waitTimer:80,
+    round:1,score:0,outs:0,maxOuts:cfg.maxOuts,combo:0,
+    hrCount:0,hrTarget:cfg.hrTarget,
+    state:"waiting",waitTimer:80,
     pitch:null,
-    announcement:null, announceTimer:0,
-    result:null, resultTimer:0,
-    particles:[], crowdCheer:0, shakeX:0, shakeY:0, shake:0,
+    announcement:null,announceTimer:0,
+    result:null,resultTimer:0,
+    particles:[],crowdCheer:0,shakeX:0,shakeY:0,shake:0,
+    speedMult:cfg.speedMult,
+    // Swing feedback
+    swingIndicator:null, // {t, color, label, ttl}
   };
-  updateHUD();
-  loop();
+  updateHUD();loop();
 }
 
 function startGame(){
@@ -203,59 +202,53 @@ function updateHUD(){
   document.getElementById("hud-outs").textContent=gs.outs+" / "+gs.maxOuts;
 }
 
-// ── SINGLE TAP / SPACE TO SWING ──────────────
 function doSwing(){
   if(!gs||gs.state!=="pitching")return;
   const p=gs.pitch;
-  const t=p.frame/p.type.frames; // 0=just thrown, 1=arrived
-
-  // Generous timing window
-  // t < 0.15 = way too early (miss)
-  // t 0.15-0.40 = early (weak contact, no out)
-  // t 0.40+ = good contact (HR territory)
-  // never missing after ball is halfway
-
+  const t=p.frame/p.type.frames;
   gs.state="result";
   gs.pitch=null;
 
-  let resultText, pts, isHR=false, isOut=false;
+  // Tighter timing zones:
+  // t < 0.25 = way too early (clear miss)
+  // t 0.25-0.55 = early (foul, no out but clear feedback)
+  // t 0.55-0.72 = decent (weak hit)
+  // t 0.72-0.92 = SWEET SPOT (HR zone)
+  // t > 0.92 = late (weak hit, ball almost passed)
 
-  if(t<0.15){
-    // Too early — out
-    isOut=true;
-    resultText="TOO EARLY!";pts=0;
-  } else if(t<0.42){
-    // Early contact — foul ball, no out, no points
-    resultText="FOUL BALL";pts=0;gs.combo=0;
-  } else if(t<0.62){
-    // Decent but weak — single, points but no HR
-    resultText="WEAK HIT";pts=20;gs.combo=0;
-    gs.score+=pts;
-  } else if(t<0.78){
-    // Good contact — solid hit, more points
-    resultText="SOLID HIT!";pts=50;gs.combo=Math.max(1,gs.combo);
-    gs.score+=pts;
-  } else {
-    // Sweet spot (78-100% of travel) — HOME RUN!
-    isHR=true;
-    gs.combo++;
-    const dist=330+Math.floor(t*80)+Math.floor(Math.random()*50);
-    pts=80*gs.combo+Math.floor(dist/5);
-    gs.score+=pts;
-    gs.hrCount++;
-    gs.crowdCheer=220;
-    gs.shake=20;
+  let label,color,isHR=false,isOut=false,pts=0;
+
+  if(t<0.25){
+    label="❌ TOO EARLY!";color="#ff3860";isOut=true;gs.combo=0;
+  } else if(t<0.55){
+    label="FOUL BALL";color="#ff8800";gs.combo=0;
+    // No out, just a foul — try again
+  } else if(t<0.72){
+    label="WEAK HIT";color="#ffe600";pts=20;gs.combo=0;gs.score+=pts;
+  } else if(t<=0.92){
+    // HOME RUN sweet spot
+    isHR=true;gs.combo++;
+    const dist=320+Math.floor(t*120)+Math.floor(Math.random()*60);
+    pts=100*gs.combo+Math.floor(dist/5);
+    gs.score+=pts;gs.hrCount++;
+    gs.crowdCheer=220;gs.shake=18;
     spawnFireworks();
-    resultText="HOME RUN! 🚀 "+dist+"ft";
+    label="HOME RUN! 🚀 "+dist+"ft";color="#ffe600";
+  } else {
+    // Late — weak hit, ball nearly past
+    label="⚡ LATE HIT";color="#ff8800";pts=10;gs.combo=0;gs.score+=pts;
   }
 
-  if(isOut){gs.outs++;gs.combo=0;}
-  gs.result={text:resultText,pts,isHR,isOut};
-  gs.resultTimer=100;
-  updateHUD();
+  if(isOut){gs.outs++;}
+  gs.result={text:label,pts,isHR,isOut,color};
+  gs.resultTimer=110;
 
-  if(gs.outs>=gs.maxOuts){setTimeout(()=>gameOver(),1300);return;}
-  if(gs.hrCount>=gs.hrTarget){setTimeout(()=>nextRound(),1300);}
+  // Swing indicator — shows WHERE in the zone they swung
+  gs.swingIndicator={t,color,label,ttl:90};
+
+  updateHUD();
+  if(gs.outs>=gs.maxOuts){setTimeout(()=>gameOver(),1400);return;}
+  if(gs.hrCount>=gs.hrTarget){setTimeout(()=>nextRound(),1400);}
 }
 
 document.addEventListener("keydown",e=>{if(e.key===" "){e.preventDefault();doSwing();}});
@@ -265,311 +258,263 @@ function throwPitch(){
   const pool=getPitchPool(gs.round);
   const type=pool[Math.floor(Math.random()*pool.length)];
   gs.announcement=type;
-  gs.announceTimer=50;
+  gs.announceTimer=48;
   gs.state="announcing";
 }
 
 function nextRound(){
-  gs.round++;gs.hrCount=0;gs.hrTarget=3+gs.round;
-  gs.outs=0;gs.combo=0;gs.result=null;
-  gs.state="waiting";gs.waitTimer=90;
+  gs.round++;
+  const cfg=getRoundConfig(gs.round);
+  gs.hrCount=0;gs.hrTarget=cfg.hrTarget;
+  gs.outs=0;gs.maxOuts=cfg.maxOuts;
+  gs.combo=0;gs.result=null;
+  gs.speedMult=cfg.speedMult;
+  gs.state="waiting";gs.waitTimer=100;
+  gs.swingIndicator=null;
   updateHUD();
+  // Flash round announcement
+  gs.result={text:"ROUND "+gs.round+"! NEED "+cfg.hrTarget+" HRS",pts:0,isHR:false,isOut:false,color:"#ffe600"};
+  gs.resultTimer=130;
 }
 
 function spawnFireworks(){
   for(let i=0;i<32;i++){
     const a=Math.random()*Math.PI*2,spd=2+Math.random()*6;
-    gs.particles.push({x:CW/2,y:180,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-2.5,life:45+Math.random()*25,color:["#ffe600","#00e5cc","#ff3860","#00ff88","#ff8800","#fff"][Math.floor(Math.random()*6)],size:4+Math.random()*5});
+    gs.particles.push({x:CW/2,y:190,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-2.5,life:45+Math.random()*25,color:["#ffe600","#00e5cc","#ff3860","#00ff88","#ff8800","#fff"][Math.floor(Math.random()*6)],size:4+Math.random()*5});
   }
 }
 
-// ── LOOP ─────────────────────────────────────
 function loop(){update();draw();raf=requestAnimationFrame(loop);}
 
 function update(){
   if(!gs)return;
-
-  // Screen shake
-  if(gs.shake>0){gs.shake--;gs.shakeX=(Math.random()-.5)*gs.shake*.8;gs.shakeY=(Math.random()-.5)*gs.shake*.8;}
-  else{gs.shakeX=0;gs.shakeY=0;}
+  if(gs.shake>0){gs.shake--;gs.shakeX=(Math.random()-.5)*gs.shake*.8;gs.shakeY=(Math.random()-.5)*gs.shake*.8;}else{gs.shakeX=0;gs.shakeY=0;}
   if(gs.crowdCheer>0)gs.crowdCheer--;
-
-  // Particles
+  if(gs.swingIndicator&&gs.swingIndicator.ttl>0)gs.swingIndicator.ttl--;
   gs.particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.life--;});
   gs.particles=gs.particles.filter(p=>p.life>0);
 
-  if(gs.state==="waiting"){
-    gs.waitTimer--;
-    if(gs.waitTimer<=0)throwPitch();
-    return;
-  }
-
-  if(gs.state==="announcing"){
-    gs.announceTimer--;
-    if(gs.announceTimer<=0){
-      // Launch pitch
-      const type=gs.announcement;
-      gs.pitch={type,frame:0,trail:[]};
-      gs.state="pitching";
-    }
-    return;
-  }
-
+  if(gs.state==="waiting"){gs.waitTimer--;if(gs.waitTimer<=0)throwPitch();return;}
+  if(gs.state==="announcing"){gs.announceTimer--;if(gs.announceTimer<=0){const type=gs.announcement;gs.pitch={type,frame:0,trail:[]};gs.state="pitching";}return;}
   if(gs.state==="pitching"){
     const p=gs.pitch;
     p.frame++;
-    if(p.frame%4===0){
-      const pos=getPitchPos(p);
-      p.trail.push({x:pos.x,y:pos.y,r:pos.r});
-      if(p.trail.length>7)p.trail.shift();
-    }
-    // Auto called strike if ball passes
-    if(p.frame>p.type.frames+15){
-      gs.state="result";
-      gs.pitch=null;
+    if(p.frame%4===0){const pos=getPitchPos(p);p.trail.push({x:pos.x,y:pos.y,r:pos.r});if(p.trail.length>7)p.trail.shift();}
+    // Called strike — ball passed without swing
+    const effectiveFrames=p.type.frames/gs.speedMult;
+    if(p.frame>effectiveFrames+12){
+      gs.state="result";gs.pitch=null;
       gs.outs++;gs.combo=0;
-      gs.result={text:"CALLED STRIKE!",pts:0,isHR:false,isOut:true};
-      gs.resultTimer=90;
+      gs.result={text:"CALLED STRIKE!",pts:0,isHR:false,isOut:true,color:"#ff3860"};
+      gs.resultTimer=90;gs.swingIndicator=null;
       updateHUD();
-      if(gs.outs>=gs.maxOuts){setTimeout(()=>gameOver(),1300);}
+      if(gs.outs>=gs.maxOuts)setTimeout(()=>gameOver(),1400);
     }
     return;
   }
-
   if(gs.state==="result"){
     gs.resultTimer--;
     if(gs.resultTimer<=0&&gs.outs<gs.maxOuts&&gs.hrCount<gs.hrTarget){
-      gs.result=null;
-      gs.state="waiting";
-      gs.waitTimer=65;
+      gs.result=null;gs.state="waiting";gs.waitTimer=60;
     }
   }
 }
 
 function getPitchPos(p){
-  const t=Math.min(1,p.frame/p.type.frames);
-  let ease, sizeEase;
-
+  const effectiveFrames=p.type.frames/gs.speedMult;
+  const t=Math.min(1,p.frame/effectiveFrames);
+  let ease,sizeEase;
   if(p.type.easing==="fast"){
-    // Stays small/slow then rockets toward you in final 30%
-    ease=t<0.7 ? t*t*0.4 : 0.4+(t-0.7)/0.3*0.6;
-    sizeEase=t<0.65 ? t*0.3 : 0.195+(t-0.65)/0.35*0.805;
+    ease=t<0.65?t*t*0.35:0.35+(t-0.65)/0.35*0.65;
+    sizeEase=t<0.6?t*0.25:0.15+(t-0.6)/0.4*0.85;
   } else if(p.type.easing==="curve"){
-    // Smooth arc, drift accelerates in second half
     ease=t*t*(3-2*t);
-    const driftEase=t<0.5 ? t*t*0.15 : 0.075+(t-0.5)*(t-0.5)*3.7;
-    const landX=ZONE_CX+p.type.driftX*Math.min(driftEase,1);
-    const landY=ZONE_CY+p.type.driftY*ease;
-    const x=VANISH_X+(landX-VANISH_X)*ease;
-    const y=VANISH_Y+(landY-VANISH_Y)*ease;
-    const r=1.5+ease*17;
-    return{x,y,r,t};
+    const driftEase=t<0.5?t*t*0.15:0.075+(t-0.5)*(t-0.5)*3.7;
+    const lx=ZONE_CX+p.type.driftX*Math.min(driftEase,1);
+    const ly=ZONE_CY+p.type.driftY*ease;
+    return{x:VANISH_X+(lx-VANISH_X)*ease,y:VANISH_Y+(ly-VANISH_Y)*ease,r:1.5+ease*17,t};
   } else if(p.type.easing==="change"){
-    // Looks fast (steep ease) then flattens = appears to slow down
-    ease=t<0.45 ? t*t*2.2 : Math.min(0.45+t*t*0.55,1);
+    ease=t<0.42?t*t*2.1:Math.min(0.42+t*t*0.58,1);
     sizeEase=ease;
   } else if(p.type.easing==="slider"){
-    // Straight until 68% then cuts hard sideways
     ease=t*t*(3-2*t);
-    const cutT=t<0.68 ? 0 : ((t-0.68)/0.32);
+    const cutT=t<0.68?0:(t-0.68)/0.32;
     const driftEase=cutT*cutT*(3-2*cutT);
-    const landX=ZONE_CX+p.type.driftX*driftEase;
-    const landY=ZONE_CY+p.type.driftY*ease;
-    const x=VANISH_X+(landX-VANISH_X)*ease;
-    const y=VANISH_Y+(landY-VANISH_Y)*ease;
-    const r=1.5+ease*17;
-    return{x,y,r,t};
+    const lx=ZONE_CX+p.type.driftX*driftEase;
+    const ly=ZONE_CY+p.type.driftY*ease;
+    return{x:VANISH_X+(lx-VANISH_X)*ease,y:VANISH_Y+(ly-VANISH_Y)*ease,r:1.5+ease*17,t};
   } else {
-    ease=t*t*(3-2*t);
-    sizeEase=ease;
+    ease=t*t*(3-2*t);sizeEase=ease;
   }
-
-  const landX=ZONE_CX+p.type.driftX;
-  const landY=ZONE_CY+p.type.driftY;
-  const x=VANISH_X+(landX-VANISH_X)*ease;
-  const y=VANISH_Y+(landY-VANISH_Y)*ease;
-  const r=1.5+(sizeEase||ease)*17;
-  return{x,y,r,t};
+  return{x:VANISH_X+(ZONE_CX+p.type.driftX-VANISH_X)*ease,y:VANISH_Y+(ZONE_CY+p.type.driftY-VANISH_Y)*ease,r:1.5+(sizeEase||ease)*17,t};
 }
 
-// ── DRAW ─────────────────────────────────────
 function draw(){
   if(!gs)return;
-  ctx.save();
-  ctx.translate(gs.shakeX,gs.shakeY);
-
-  // Sky
-  const sky=ctx.createLinearGradient(0,0,0,CH);
-  sky.addColorStop(0,"#04041a");sky.addColorStop(0.6,"#081428");sky.addColorStop(1,"#0a1e1a");
-  ctx.fillStyle=sky;ctx.fillRect(0,0,CW,CH);
-
-  // Stars
-  ctx.fillStyle="rgba(255,255,255,0.6)";
-  for(let i=0;i<28;i++)ctx.fillRect(((i*137+11)%CW),((i*97+5)%115),i%4===0?2:1,i%4===0?2:1);
-
-  // Outfield wall
-  ctx.fillStyle="#1a3a8a";ctx.fillRect(0,82,CW,22);
-  ctx.fillStyle="#ffe600";ctx.font='6px "Press Start 2P",monospace';ctx.textAlign="center";
-  ctx.fillText("TEL AVIV SHARKS — HOME RUN DERBY",CW/2,97);ctx.textAlign="left";
-
-  // Crowd
-  const cheer=gs.crowdCheer/220;
-  for(let i=0;i<38;i++){
-    const bx=i*(CW/38)+4;
-    const wave=Math.sin(i*0.7+Date.now()*0.004)*cheer*14;
-    ctx.fillStyle=`hsl(${220+i*4},35%,${14+cheer*18}%)`;
-    ctx.fillRect(bx-4,106-wave,9,18+wave);
-    ctx.fillStyle=`hsl(${28+i*6},48%,${38+cheer*18}%)`;
-    ctx.beginPath();ctx.arc(bx,104-wave,4,0,Math.PI*2);ctx.fill();
-  }
-
-  // Stadium lights
-  [[52,86],[CW-52,86]].forEach(([lx,ly])=>{
-    ctx.fillStyle="#444";ctx.fillRect(lx-4,ly,8,28);
-    ctx.fillStyle="#ffe600";ctx.shadowColor="#ffe600";ctx.shadowBlur=18;
-    ctx.fillRect(lx-14,ly-10,28,10);ctx.shadowBlur=0;
-  });
-
-  // Grass (perspective)
-  const g=ctx.createLinearGradient(0,128,0,CH);
-  g.addColorStop(0,"#0d3d0d");g.addColorStop(1,"#1a5c1a");
-  ctx.fillStyle=g;ctx.fillRect(0,128,CW,CH-128);
-
-  // Grass stripes
-  for(let i=0;i<8;i++){
-    ctx.fillStyle=i%2===0?"rgba(255,255,255,0.025)":"rgba(0,0,0,0.04)";
-    const lx1=(i/8)*CW,lx2=((i+1)/8)*CW;
-    const wx1=CW/2+(lx1-CW/2)*0.28,wx2=CW/2+(lx2-CW/2)*0.28;
-    ctx.beginPath();ctx.moveTo(wx1,128);ctx.lineTo(wx2,128);ctx.lineTo(lx2,CH);ctx.lineTo(lx1,CH);ctx.closePath();ctx.fill();
-  }
-
-  // Foul lines
-  ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(ZONE_CX,ZONE_CY+ZONE_H/2);ctx.lineTo(20,CH);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(ZONE_CX,ZONE_CY+ZONE_H/2);ctx.lineTo(CW-20,CH);ctx.stroke();
-
-  // Pitcher mound
-  ctx.fillStyle="#7a5510";ctx.beginPath();ctx.ellipse(CW/2,168,32,13,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#8B6914";ctx.beginPath();ctx.ellipse(CW/2,168,13,5,0,0,Math.PI*2);ctx.fill();
-
-  // Pitcher
-  drawPitcher();
-
-  // Strike zone
+  ctx.save();ctx.translate(gs.shakeX,gs.shakeY);
+  drawField();
   drawStrikeZone();
-
-  // Ball
+  drawSwingIndicator();
   drawBall();
-
-  // Batter (bottom left, from behind)
   drawBatter();
+  drawHRDots();
 
   // Particles
   gs.particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/70);ctx.fillStyle=p.color;ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);});
   ctx.globalAlpha=1;
 
-  // HR dots progress
-  drawHRDots();
-
   // Announcement
   if(gs.state==="announcing"&&gs.announcement){
-    const alpha=Math.min(1,(50-gs.announceTimer)/10);
+    const alpha=Math.min(1,(48-gs.announceTimer)/10);
     const pt=gs.announcement;
     ctx.globalAlpha=alpha;
-    ctx.font='10px "Press Start 2P",monospace';ctx.textAlign="center";
+    ctx.font='9px "Press Start 2P",monospace';ctx.textAlign="center";
     ctx.fillStyle=pt.color;ctx.shadowColor=pt.color;ctx.shadowBlur=14;
-    ctx.fillText(pt.name+" INCOMING!",CW/2,132);
-    ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.textAlign="left";
+    ctx.fillText(pt.name+" INCOMING!",CW/2,128);
+    ctx.shadowBlur=0;
+    ctx.font='6px "Press Start 2P",monospace';ctx.fillStyle="rgba(255,255,255,0.65)";
+    ctx.fillText(pt.desc,CW/2,146);
+    ctx.globalAlpha=1;ctx.textAlign="left";
   }
 
   // SWING zone cue
   if(gs.state==="pitching"&&gs.pitch){
     const pos=getPitchPos(gs.pitch);
-    if(pos.t>=0.38){
-      const pulse=0.6+Math.sin(Date.now()*0.022)*0.4;
-      const inZone=pos.t>=0.72;
-      ctx.globalAlpha=pulse*(inZone?1:0.55);
-      const col=inZone?"#ffe600":"#00ff88";
-      ctx.strokeStyle=col;ctx.lineWidth=inZone?4:2;
-      ctx.shadowColor=col;ctx.shadowBlur=inZone?22:8;
+    const t=pos.t;
+    if(t>=0.45){
+      const pulse=0.5+Math.sin(Date.now()*0.02)*0.5;
+      const inHR=t>=0.72&&t<=0.92;
+      const col=inHR?"#ffe600":t>=0.55?"#00ff88":"rgba(255,255,255,0.3)";
+      ctx.globalAlpha=pulse*(inHR?1:0.5);
+      ctx.strokeStyle=col;ctx.lineWidth=inHR?4:2;
+      ctx.shadowColor=col;ctx.shadowBlur=inHR?24:8;
       ctx.strokeRect(ZONE_CX-ZONE_W/2-8,ZONE_CY-ZONE_H/2-8,ZONE_W+16,ZONE_H+16);
       ctx.shadowBlur=0;
-      ctx.font=`bold ${inZone?13:9}px "Press Start 2P",monospace`;
+      ctx.font=`bold ${inHR?13:9}px "Press Start 2P",monospace`;
       ctx.textAlign="center";ctx.fillStyle=col;
-      ctx.fillText(inZone?"🚀 HR ZONE!":"GET READY",CW/2,412);
+      ctx.fillText(inHR?"🚀 HR ZONE!":t>=0.55?"SWING!":"WAIT...",CW/2,415);
       ctx.globalAlpha=1;ctx.textAlign="left";
     }
   }
 
-  // Result overlay
+  // Result
   if(gs.result&&gs.resultTimer>0){
     const alpha=Math.min(1,gs.resultTimer/22);
     ctx.globalAlpha=alpha;
-    const col=gs.result.isHR?"#ffe600":gs.result.isOut?"#ff3860":"#00ff88";
+    const col=gs.result.color||"#fff";
     ctx.font=`bold ${gs.result.isHR?22:16}px "Press Start 2P",monospace`;
     ctx.textAlign="center";ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=24;
-    ctx.fillText(gs.result.text,CW/2,gs.result.isHR?195:208);
-    if(gs.result.pts>0){
-      ctx.font='9px "Press Start 2P",monospace';ctx.fillStyle="#fff";ctx.shadowBlur=0;
-      ctx.fillText("+"+gs.result.pts+" PTS",CW/2,gs.result.isHR?222:228);
-    }
-    if(gs.combo>=2){
-      ctx.font='8px "Press Start 2P",monospace';ctx.fillStyle="#ffe600";
-      ctx.fillText("COMBO x"+gs.combo+" 🔥",CW/2,gs.result.isHR?240:246);
-    }
+    ctx.fillText(gs.result.text,CW/2,gs.result.isHR?195:210);
+    if(gs.result.pts>0){ctx.font='9px "Press Start 2P",monospace';ctx.fillStyle="#fff";ctx.shadowBlur=0;ctx.fillText("+"+gs.result.pts+" PTS",CW/2,gs.result.isHR?220:230);}
+    if(gs.combo>=2){ctx.font='8px "Press Start 2P",monospace';ctx.fillStyle="#ffe600";ctx.fillText("COMBO x"+gs.combo+" 🔥",CW/2,gs.result.isHR?238:248);}
     ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.textAlign="left";
   }
 
   // Waiting hint
   if(gs.state==="waiting"&&Math.floor(Date.now()/500)%2===0){
     ctx.font='7px "Press Start 2P",monospace';ctx.fillStyle="rgba(0,229,204,0.6)";
-    ctx.textAlign="center";ctx.fillText("GET READY...",CW/2,418);ctx.textAlign="left";
+    ctx.textAlign="center";ctx.fillText("GET READY...",CW/2,420);ctx.textAlign="left";
+  }
+
+  // Round speed indicator top-right
+  if(gs.round>1){
+    ctx.font='5px "Press Start 2P",monospace';ctx.fillStyle="rgba(255,56,96,0.7)";ctx.textAlign="right";
+    ctx.fillText("SPEED x"+gs.speedMult.toFixed(1),CW-8,38);ctx.textAlign="left";
   }
 
   ctx.restore();
 }
 
-function drawPitcher(){
-  const px=CW/2,py=146;
-  const winding=gs.state==="waiting"||gs.state==="announcing";
-  ctx.fillStyle="#cc3333";ctx.fillRect(px-5,py-10,10,10);
-  ctx.fillStyle="#f4a460";ctx.beginPath();ctx.arc(px,py-14,5,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#111111";ctx.fillRect(px-5,py-20,10,6);
-  ctx.fillStyle="#1a1a4a";ctx.fillRect(px-4,py,3,9);ctx.fillRect(px+2,py,3,9);
-  ctx.fillStyle="#cc3333";
-  if(winding){ctx.fillRect(px+5,py-17,9,4);ctx.beginPath();ctx.arc(px+13,py-17,3,0,Math.PI*2);ctx.fill();}
-  else{ctx.fillRect(px+5,py-12,11,4);}
+function drawSwingIndicator(){
+  // Show a marker on the zone bottom showing WHERE player swung
+  if(!gs.swingIndicator||gs.swingIndicator.ttl<=0)return;
+  const si=gs.swingIndicator;
+  const alpha=si.ttl/90;
+  // Map t (0-1) to zone width
+  const zx=ZONE_CX-ZONE_W/2;
+  const markerX=zx+si.t*ZONE_W;
+  const zy=ZONE_CY+ZONE_H/2+8;
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle=si.color;
+  ctx.beginPath();ctx.moveTo(markerX,zy);ctx.lineTo(markerX-8,zy+14);ctx.lineTo(markerX+8,zy+14);ctx.closePath();ctx.fill();
+  ctx.font='5px "Press Start 2P",monospace';ctx.textAlign="center";ctx.fillStyle=si.color;
+  ctx.fillText("SWING",markerX,zy+24);
+  ctx.textAlign="left";ctx.globalAlpha=1;
 }
 
-function drawStrikeZone(){
-  const zx=ZONE_CX-ZONE_W/2,zy=ZONE_CY-ZONE_H/2;
-  ctx.strokeStyle="rgba(255,255,255,0.2)";ctx.lineWidth=1.5;ctx.strokeRect(zx,zy,ZONE_W,ZONE_H);
-  ctx.strokeStyle="rgba(255,255,255,0.07)";ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(ZONE_CX,zy);ctx.lineTo(ZONE_CX,zy+ZONE_H);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(zx,ZONE_CY);ctx.lineTo(zx+ZONE_W,ZONE_CY);ctx.stroke();
-  ctx.font='5px "Press Start 2P",monospace';ctx.fillStyle="rgba(255,255,255,0.18)";
-  ctx.textAlign="center";ctx.fillText("STRIKE ZONE",ZONE_CX,zy-6);ctx.textAlign="left";
+function drawField(){
+  const sky=ctx.createLinearGradient(0,0,0,CH);
+  sky.addColorStop(0,"#04041a");sky.addColorStop(0.6,"#081428");sky.addColorStop(1,"#0a1e1a");
+  ctx.fillStyle=sky;ctx.fillRect(0,0,CW,CH);
+  ctx.fillStyle="rgba(255,255,255,0.6)";
+  for(let i=0;i<28;i++)ctx.fillRect(((i*137+11)%CW),((i*97+5)%115),i%4===0?2:1,i%4===0?2:1);
+  ctx.fillStyle="#1a3a8a";ctx.fillRect(0,82,CW,22);
+  ctx.fillStyle="#ffe600";ctx.font='6px "Press Start 2P",monospace';ctx.textAlign="center";
+  ctx.fillText("TEL AVIV SHARKS — HOME RUN DERBY",CW/2,97);ctx.textAlign="left";
+  const cheer=gs.crowdCheer/220;
+  for(let i=0;i<38;i++){
+    const bx=i*(CW/38)+4,wave=Math.sin(i*0.7+Date.now()*0.004)*cheer*14;
+    ctx.fillStyle=`hsl(${220+i*4},35%,${14+cheer*18}%)`;ctx.fillRect(bx-4,106-wave,9,18+wave);
+    ctx.fillStyle=`hsl(${28+i*6},48%,${38+cheer*18}%)`;ctx.beginPath();ctx.arc(bx,104-wave,4,0,Math.PI*2);ctx.fill();
+  }
+  [[52,86],[CW-52,86]].forEach(([lx,ly])=>{
+    ctx.fillStyle="#444";ctx.fillRect(lx-4,ly,8,28);
+    ctx.fillStyle="#ffe600";ctx.shadowColor="#ffe600";ctx.shadowBlur=18;ctx.fillRect(lx-14,ly-10,28,10);ctx.shadowBlur=0;
+  });
+  const g=ctx.createLinearGradient(0,128,0,CH);
+  g.addColorStop(0,"#0d3d0d");g.addColorStop(1,"#1a5c1a");
+  ctx.fillStyle=g;ctx.fillRect(0,128,CW,CH-128);
+  for(let i=0;i<8;i++){
+    ctx.fillStyle=i%2===0?"rgba(255,255,255,0.025)":"rgba(0,0,0,0.04)";
+    const lx1=(i/8)*CW,lx2=((i+1)/8)*CW;
+    const wx1=CW/2+(lx1-CW/2)*0.28,wx2=CW/2+(lx2-CW/2)*0.28;
+    ctx.beginPath();ctx.moveTo(wx1,128);ctx.lineTo(wx2,128);ctx.lineTo(lx2,CH);ctx.lineTo(lx1,CH);ctx.closePath();ctx.fill();
+  }
+  ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(ZONE_CX,ZONE_CY+ZONE_H/2);ctx.lineTo(20,CH);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ZONE_CX,ZONE_CY+ZONE_H/2);ctx.lineTo(CW-20,CH);ctx.stroke();
+  ctx.fillStyle="#7a5510";ctx.beginPath();ctx.ellipse(CW/2,168,32,13,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#8B6914";ctx.beginPath();ctx.ellipse(CW/2,168,13,5,0,0,Math.PI*2);ctx.fill();
+  // Pitcher
+  const px=CW/2,py=146;
+  ctx.fillStyle="#cc3333";ctx.fillRect(px-5,py-10,10,10);
+  ctx.fillStyle="#f4a460";ctx.beginPath();ctx.arc(px,py-14,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#111";ctx.fillRect(px-5,py-20,10,6);
+  ctx.fillStyle="#1a1a4a";ctx.fillRect(px-4,py,3,9);ctx.fillRect(px+2,py,3,9);
+  ctx.fillStyle="#cc3333";
+  if(gs.state==="waiting"||gs.state==="announcing"){ctx.fillRect(px+5,py-17,9,4);ctx.beginPath();ctx.arc(px+13,py-17,3,0,Math.PI*2);ctx.fill();}
+  else{ctx.fillRect(px+5,py-12,11,4);}
   // Home plate
   ctx.fillStyle="white";
   ctx.beginPath();ctx.moveTo(CW/2,CH-14);ctx.lineTo(CW/2+13,CH-22);ctx.lineTo(CW/2+11,CH-6);ctx.lineTo(CW/2-11,CH-6);ctx.lineTo(CW/2-13,CH-22);ctx.closePath();ctx.fill();
 }
 
+function drawStrikeZone(){
+  const zx=ZONE_CX-ZONE_W/2,zy=ZONE_CY-ZONE_H/2;
+  // HR zone highlighted inside strike zone
+  ctx.fillStyle="rgba(255,230,0,0.04)";
+  ctx.fillRect(zx,zy+ZONE_H*0.08,ZONE_W,ZONE_H*0.48); // 72-92% of zone height
+  ctx.strokeStyle="rgba(255,255,255,0.2)";ctx.lineWidth=1.5;ctx.strokeRect(zx,zy,ZONE_W,ZONE_H);
+  ctx.strokeStyle="rgba(255,255,255,0.07)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ZONE_CX,zy);ctx.lineTo(ZONE_CX,zy+ZONE_H);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(zx,ZONE_CY);ctx.lineTo(zx+ZONE_W,ZONE_CY);ctx.stroke();
+  // HR zone border
+  ctx.strokeStyle="rgba(255,230,0,0.2)";ctx.lineWidth=1;
+  ctx.strokeRect(zx+1,zy+ZONE_H*0.08,ZONE_W-2,ZONE_H*0.48);
+  ctx.font='5px "Press Start 2P",monospace';
+  ctx.fillStyle="rgba(255,255,255,0.18)";ctx.textAlign="center";ctx.fillText("STRIKE ZONE",ZONE_CX,zy-6);
+  ctx.fillStyle="rgba(255,230,0,0.3)";ctx.fillText("HR ZONE",ZONE_CX,zy+16);
+  ctx.textAlign="left";
+}
+
 function drawBall(){
   if(gs.state!=="pitching"||!gs.pitch)return;
-  const p=gs.pitch;
-  const pos=getPitchPos(p);
-  // Trail
-  p.trail.forEach((t,i)=>{
-    ctx.globalAlpha=(i/p.trail.length)*0.3;
-    ctx.fillStyle=p.type.color;
-    ctx.beginPath();ctx.arc(t.x,t.y,t.r*0.65,0,Math.PI*2);ctx.fill();
-  });
+  const p=gs.pitch;const pos=getPitchPos(p);
+  p.trail.forEach((t,i)=>{ctx.globalAlpha=(i/p.trail.length)*0.3;ctx.fillStyle=p.type.color;ctx.beginPath();ctx.arc(t.x,t.y,t.r*0.65,0,Math.PI*2);ctx.fill();});
   ctx.globalAlpha=1;
-  // Glow
   const grd=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,pos.r*2.8);
   grd.addColorStop(0,p.type.color+"77");grd.addColorStop(1,"transparent");
   ctx.fillStyle=grd;ctx.beginPath();ctx.arc(pos.x,pos.y,pos.r*2.8,0,Math.PI*2);ctx.fill();
-  // Ball
   ctx.fillStyle="#f5f5dc";ctx.beginPath();ctx.arc(pos.x,pos.y,pos.r,0,Math.PI*2);ctx.fill();
   if(pos.r>5){
     ctx.strokeStyle="#cc2222";ctx.lineWidth=Math.max(0.8,pos.r*0.14);
@@ -580,41 +525,34 @@ function drawBall(){
 
 function drawBatter(){
   const bx=CW/2-68,by=CH-26;
-  const swinging=gs.state==="result"&&gs.result&&!gs.result.isOut;
+  const swinging=gs.state==="result"&&gs.result&&!gs.result.isOut&&gs.result.text!=="FOUL BALL"&&gs.result.text!=="CALLED STRIKE!";
   ctx.fillStyle="rgba(0,0,0,0.3)";ctx.beginPath();ctx.ellipse(bx,by+4,20,7,0,0,Math.PI*2);ctx.fill();
-  // Legs
   ctx.fillStyle="#1a3a6a";ctx.fillRect(bx-7,by-26,8,26);ctx.fillRect(bx+2,by-26,8,26);
   ctx.fillStyle="#111";ctx.fillRect(bx-9,by-3,11,5);ctx.fillRect(bx+1,by-3,11,5);
-  // Body
   ctx.fillStyle="#003087";ctx.fillRect(bx-11,by-48,22,24);
-  // Arms + bat
   if(swinging){
     ctx.fillStyle="#003087";ctx.fillRect(bx+8,by-48,18,8);
-    ctx.fillStyle="#8B4513";
-    ctx.save();ctx.translate(bx+26,by-50);ctx.rotate(-0.65);ctx.fillRect(-3,-24,6,48);ctx.restore();
+    ctx.fillStyle="#8B4513";ctx.save();ctx.translate(bx+26,by-50);ctx.rotate(-0.65);ctx.fillRect(-3,-24,6,48);ctx.restore();
     ctx.strokeStyle="rgba(139,69,19,0.35)";ctx.lineWidth=3;
     ctx.beginPath();ctx.moveTo(bx+8,by-28);ctx.lineTo(bx+38,by-58);ctx.stroke();
   } else {
     ctx.fillStyle="#003087";ctx.fillRect(bx-22,by-48,14,7);
-    ctx.fillStyle="#8B4513";
-    ctx.save();ctx.translate(bx-17,by-50);ctx.rotate(0.28);ctx.fillRect(-3,-19,6,38);ctx.restore();
+    ctx.fillStyle="#8B4513";ctx.save();ctx.translate(bx-17,by-50);ctx.rotate(0.28);ctx.fillRect(-3,-19,6,38);ctx.restore();
   }
-  // Head
   ctx.fillStyle="#f4a460";ctx.beginPath();ctx.arc(bx,by-56,10,0,Math.PI*2);ctx.fill();
   ctx.fillStyle="#111";ctx.beginPath();ctx.arc(bx,by-56,11,Math.PI*1.1,Math.PI*2.1);ctx.fill();
-  ctx.fillRect(bx-11,by-58,22,5);
-  ctx.fillRect(bx+10,by-60,10,8);
+  ctx.fillRect(bx-11,by-58,22,5);ctx.fillRect(bx+10,by-60,10,8);
   ctx.fillStyle="#000";ctx.fillRect(bx+4,by-58,3,3);
 }
 
 function drawHRDots(){
   if(!gs)return;
-  const total=gs.hrTarget,dotW=18,gap=5;
+  const total=gs.hrTarget,dotW=16,gap=5;
   const startX=(CW-(total*(dotW+gap)-gap))/2;
   for(let i=0;i<total;i++){
     const filled=i<gs.hrCount,dx=startX+i*(dotW+gap);
     ctx.fillStyle=filled?"#ffe600":"rgba(255,255,255,0.08)";ctx.fillRect(dx,8,dotW,dotW);
-    if(filled){ctx.font="12px monospace";ctx.textAlign="center";ctx.fillText("⚾",dx+dotW/2,22);ctx.textAlign="left";}
+    if(filled){ctx.font="11px monospace";ctx.textAlign="center";ctx.fillText("⚾",dx+dotW/2,21);ctx.textAlign="left";}
     ctx.strokeStyle=filled?"#ffe600":"rgba(255,255,255,0.18)";ctx.lineWidth=1;ctx.strokeRect(dx,8,dotW,dotW);
   }
   ctx.font='5px "Press Start 2P",monospace';ctx.fillStyle="rgba(255,255,255,0.35)";
