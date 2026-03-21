@@ -195,7 +195,7 @@ function getWeekStart(){
 }
 
 async function saveScore(name,score,wave){
-  if(SUPABASE_URL==="https://jqopkrkqktfaojxbcgvi.supabase.co") return;
+  // configured
   try{
     await fetch(SUPABASE_URL+"/rest/v1/scores",{
       method:"POST",
@@ -206,7 +206,7 @@ async function saveScore(name,score,wave){
 }
 
 async function loadLeaderboard(){
-  if(SUPABASE_URL==="https://jqopkrkqktfaojxbcgvi.supabase.co"){
+  if(false){
     document.getElementById("lb-body").innerHTML="<tr><td colspan='4' class='lb-empty'>CONFIGURE SUPABASE TO SEE SCORES</td></tr>";
     return;
   }
@@ -224,7 +224,7 @@ async function loadLeaderboard(){
 }
 
 async function getRank(name,score){
-  if(SUPABASE_URL==="https://jqopkrkqktfaojxbcgvi.supabase.co") return 0;
+  // configured
   try{
     const week=getWeekStart();
     const r=await fetch(SUPABASE_URL+"/rest/v1/scores?game_id=eq."+GAME_ID+"&week_start=eq."+week+"&score=gte."+score+"&select=id",{
