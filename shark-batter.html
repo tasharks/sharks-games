@@ -173,8 +173,8 @@
 // ════════════════════════════════════════════
 //  SUPABASE CONFIG — paste your values here
 // ════════════════════════════════════════════
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "https://jqopkrkqktfaojxbcgvi.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxb3Brcmtxa3RmYW9qeGJjZ3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNDczMzksImV4cCI6MjA4OTYyMzMzOX0.-1vFBQFdqkKffm7TK8cXdPx2dN0_tb5ibJlM9ymwUYs";
 const GAME_ID = "shark-batter";
 
 // ── STARS ────────────────────────────────────
@@ -196,7 +196,6 @@ function getWeekStart(){
 }
 
 async function saveScore(name,score,wave){
-  if(SUPABASE_URL==="YOUR_SUPABASE_URL") return;
   try{
     await fetch(SUPABASE_URL+"/rest/v1/scores",{
       method:"POST",
@@ -207,10 +206,7 @@ async function saveScore(name,score,wave){
 }
 
 async function loadLeaderboard(){
-  if(SUPABASE_URL==="YOUR_SUPABASE_URL"){
-    document.getElementById("lb-body").innerHTML="<tr><td colspan='4' class='lb-empty'>CONFIGURE SUPABASE TO SEE SCORES</td></tr>";
-    return;
-  }
+  
   try{
     const week=getWeekStart();
     const r=await fetch(SUPABASE_URL+"/rest/v1/scores?game_id=eq."+GAME_ID+"&week_start=eq."+week+"&order=score.desc&limit=10&select=player_name,score,wave",{
@@ -225,7 +221,6 @@ async function loadLeaderboard(){
 }
 
 async function getRank(name,score){
-  if(SUPABASE_URL==="YOUR_SUPABASE_URL") return 0;
   try{
     const week=getWeekStart();
     const r=await fetch(SUPABASE_URL+"/rest/v1/scores?game_id=eq."+GAME_ID+"&week_start=eq."+week+"&score=gte."+score+"&select=id",{
