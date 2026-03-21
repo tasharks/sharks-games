@@ -104,12 +104,15 @@
       <span class="play-btn">▶ PLAY</span>
     </div>
 
-    <div class="game-card card-coming" style="opacity:0.5;">
-      <div class="card-emoji">🌊</div>
-      <div class="card-title">COMING SOON</div>
-      <div class="card-desc">Next game drops here. Keep smashing bricks to unlock it!</div>
-      <div class="card-meta"><span class="card-tag tag-coming">COMING SOON</span></div>
-      <span class="play-btn">LOCKED</span>
+    <div class="game-card" onclick="goGame('pitch-perfect.html')">
+      <div class="card-emoji">⚾🎯</div>
+      <div class="card-title">PITCH PERFECT</div>
+      <div class="card-desc">Strike out batters marching toward home plate! Aim, pick your pitch, and fire!</div>
+      <div class="card-meta">
+        <span class="card-tag tag-live">● LIVE</span>
+        <span class="card-top-score" id="top-pitch-perfect">TOP: —</span>
+      </div>
+      <span class="play-btn">▶ PLAY</span>
     </div>
 
   </div>
@@ -156,6 +159,7 @@ const GAMES=[
   {id:"shark-batter",   name:"SHARK BATTER",   file:"shark-batter.html",   live:true},
   {id:"outfield-blitz", name:"OUTFIELD BLITZ",  file:"outfield-blitz.html", live:true},
   {id:"homerun-derby",  name:"HOME RUN DERBY",  file:"homerun-derby.html",  live:true},
+  {id:"pitch-perfect",  name:"PITCH PERFECT",   file:"pitch-perfect.html",  live:true},
 ];
 
 const starsEl=document.getElementById("stars");
