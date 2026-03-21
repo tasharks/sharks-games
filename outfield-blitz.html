@@ -107,7 +107,7 @@
   <div id="canvas-wrap">
     <canvas id="game-canvas" width="480" height="460"></canvas>
   </div>
-  <div id="msg-bar" id="msg-bar">← → MOVE · SPACE OR TAP TO DIVE</div>
+  <div id="msg-bar" id="msg-bar">← → MOVE · SPACE TO DIVE · DOUBLE-TAP TO DIVE</div>
 </div>
 
 <!-- GAME OVER -->
@@ -229,13 +229,17 @@ document.addEventListener("keydown",e=>{
 });
 document.addEventListener("keyup",e=>{keys[e.key]=false;});
 
-// Touch: swipe = move, tap = dive
+// Touch: swipe = move, double-tap = dive toward that spot
 let touchStartX=null,touchStartT=0;
+let lastTapT=0,lastTapX=0,lastTapY=0;
+const DOUBLE_TAP_MS=320;
+
 canvas.addEventListener("touchstart",e=>{
   e.preventDefault();
   touchStartX=e.touches[0].clientX;
   touchStartT=Date.now();
 },{passive:false});
+
 canvas.addEventListener("touchmove",e=>{
   e.preventDefault();
   if(touchStartX===null)return;
@@ -250,24 +254,51 @@ canvas.addEventListener("touchmove",e=>{
   }
   touchStartX=e.touches[0].clientX;
 },{passive:false});
+
 canvas.addEventListener("touchend",e=>{
   e.preventDefault();
-  const elapsed=Date.now()-touchStartT;
+  const now=Date.now();
+  const elapsed=now-touchStartT;
   const dx=e.changedTouches[0].clientX-(touchStartX||e.changedTouches[0].clientX);
-  // Tap = small movement + quick = dive
-  if(elapsed<250&&Math.abs(dx)<20){tryDive();}
+  const rect=canvas.getBoundingClientRect();
+  const tapX=(e.changedTouches[0].clientX-rect.left)*(CW/rect.width);
+  const tapY=(e.changedTouches[0].clientY-rect.top)*(CH/rect.height);
+
+  // Tap = small movement + quick release
+  if(elapsed<280&&Math.abs(dx)<25){
+    // Double tap = dive toward that spot
+    if(now-lastTapT<DOUBLE_TAP_MS&&Math.abs(tapX-lastTapX)<80){
+      tryDiveToward(tapX,tapY);
+      lastTapT=0; // reset so triple-tap doesn't re-trigger
+    } else {
+      lastTapT=now;lastTapX=tapX;lastTapY=tapY;
+    }
+  }
   touchStartX=null;
   if(gs)gs.player.running=false;
 },{passive:false});
 
 function tryDive(){
+  // Desktop space bar — dive in movement direction
   if(!gs)return;
   const p=gs.player;
   if(p.diving||p.diveRecovery>0)return;
   p.diving=true;
   p.diveDir=p.facing;
-  p.diveX=p.x;
-  p.diveTtl=22; // frames of dive
+  p.diveTtl=22;
+}
+
+function tryDiveToward(tx,ty){
+  // Mobile double-tap — dive toward tapped spot
+  if(!gs)return;
+  const p=gs.player;
+  if(p.diving||p.diveRecovery>0)return;
+  // Direction is toward the tap X relative to player
+  const dir=tx>p.x?1:-1;
+  p.facing=dir;
+  p.diving=true;
+  p.diveDir=dir;
+  p.diveTtl=22;
 }
 
 // ── LOOP ─────────────────────────────────────

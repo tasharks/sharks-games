@@ -173,8 +173,8 @@
 // ════════════════════════════════════════════
 //  SUPABASE CONFIG — paste your values here
 // ════════════════════════════════════════════
-const SUPABASE_URL = "https://jqopkrkqktfaojxbcgvi.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxb3Brcmtxa3RmYW9qeGJjZ3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNDczMzksImV4cCI6MjA4OTYyMzMzOX0.-1vFBQFdqkKffm7TK8cXdPx2dN0_tb5ibJlM9ymwUYs";
+const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
 const GAME_ID = "shark-batter";
 
 // ── STARS ────────────────────────────────────
@@ -195,7 +195,7 @@ function getWeekStart(){
 }
 
 async function saveScore(name,score,wave){
-  // configured
+  if(SUPABASE_URL==="YOUR_SUPABASE_URL") return;
   try{
     await fetch(SUPABASE_URL+"/rest/v1/scores",{
       method:"POST",
@@ -206,7 +206,7 @@ async function saveScore(name,score,wave){
 }
 
 async function loadLeaderboard(){
-  if(false){
+  if(SUPABASE_URL==="YOUR_SUPABASE_URL"){
     document.getElementById("lb-body").innerHTML="<tr><td colspan='4' class='lb-empty'>CONFIGURE SUPABASE TO SEE SCORES</td></tr>";
     return;
   }
@@ -224,7 +224,7 @@ async function loadLeaderboard(){
 }
 
 async function getRank(name,score){
-  // configured
+  if(SUPABASE_URL==="YOUR_SUPABASE_URL") return 0;
   try{
     const week=getWeekStart();
     const r=await fetch(SUPABASE_URL+"/rest/v1/scores?game_id=eq."+GAME_ID+"&week_start=eq."+week+"&score=gte."+score+"&select=id",{
@@ -281,12 +281,18 @@ const PU_TYPES=[
   {type:"points",label:"+500 PTS",color:"#ff8800",emoji:"⭐"},
 ];
 
+// Exponential speed scaling — gentle early, intense later
+// W1:2.8  W3:3.5  W5:4.5  W8:6.5  W10:8.0  W12:9.5 (cap 10)
+function waveSpeed(wave){
+  return Math.min(10, 2.8 * Math.pow(1.13, wave - 1));
+}
+
 function initGame(){
   cancelAnimationFrame(raf);
   gs={
     wave:1,score:0,lives:3,combo:0,wideBat:0,slowBall:0,
     bat:{x:CW/2-40,y:CH-24,w:80,h:12},
-    balls:[{x:CW/2,y:CH-60,vx:2.8,vy:-3.2,r:7,launched:false}],
+    balls:[{x:CW/2,y:CH-60,vx:waveSpeed(1),vy:-waveSpeed(1)*1.14,r:7,launched:false}],
     bricks:buildBricks(1),powerups:[],particles:[],flashMsg:null,
   };
   updateHUD();loop();
@@ -295,7 +301,7 @@ function initGame(){
 function nextWave(){
   gs.wave++;gs.combo=0;gs.powerups=[];gs.particles=[];
   gs.bricks=buildBricks(gs.wave);
-  const sp=2.8+(gs.wave-1)*0.3;
+  const sp=waveSpeed(gs.wave);
   gs.balls=[{x:CW/2,y:CH-60,vx:sp*(Math.random()>.5?1:-1),vy:-sp,r:7,launched:false}];
   gs.flashMsg={text:"WAVE "+gs.wave+"!",ttl:120,color:"#ffe600"};
   updateHUD();
@@ -333,7 +339,7 @@ function update(){
   if(gs.wideBat>0)gs.wideBat--;
   if(gs.slowBall>0)gs.slowBall--;
   if(gs.flashMsg){gs.flashMsg.ttl--;if(gs.flashMsg.ttl<=0)gs.flashMsg=null;}
-  const sm=gs.slowBall>0?0.5:1;
+  const sm=gs.slowBall>0?0.72:1;
 
   gs.balls.forEach(ball=>{
     if(!ball.launched){ball.x=gs.bat.x+gs.bat.w/2;ball.y=gs.bat.y-ball.r-2;return;}
@@ -358,7 +364,7 @@ function update(){
   if(gs.balls.length===0&&hadBalls>0){
     gs.lives--;gs.combo=0;updateHUD();
     if(gs.lives<=0){gameOver();return;}
-    const sp=2.8+(gs.wave-1)*0.3;
+    const sp=waveSpeed(gs.wave);
     gs.balls=[{x:CW/2,y:CH-60,vx:sp*(Math.random()>.5?1:-1),vy:-sp,r:7,launched:false}];
   }
 
@@ -395,7 +401,7 @@ function update(){
 function applyPU(type){
   if(type==="wide")gs.wideBat=400;
   else if(type==="multi"){const b=gs.balls[0]||{x:CW/2,y:CH/2,vx:2,vy:-2,r:7,launched:true};gs.balls.push({x:b.x,y:b.y,vx:-b.vx*.9,vy:b.vy,r:7,launched:true});}
-  else if(type==="slow")gs.slowBall=300;
+  else if(type==="slow"){if(gs.slowBall<=0)gs.slowBall=Math.max(60,180-(gs.wave-1)*15);}
   else if(type==="points"){gs.score+=500;updateHUD();}
 }
 function spawnP(x,y,color,count){for(let i=0;i<count;i++)gs.particles.push({x,y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5-1,life:30+Math.random()*20,color,size:3+Math.random()*3});}

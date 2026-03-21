@@ -156,10 +156,14 @@ let gs,raf,playerName="PLAYER";
 
 // Pitch definitions — frames = how long pitch takes to arrive
 const PITCHES=[
-  {name:"FASTBALL",  color:"#ffffff", frames:90,  driftX:0,  driftY:0},
-  {name:"CURVEBALL", color:"#00e5cc", frames:110, driftX:35, driftY:18},
-  {name:"CHANGEUP",  color:"#ff8800", frames:130, driftX:5,  driftY:5},
-  {name:"SLIDER",    color:"#ff3860", frames:100, driftX:-30,driftY:8},
+  // Fastball: fast, straight, small ball stays small then EXPLODES in size at the end
+  {name:"FASTBALL", color:"#ffffff", frames:72,  driftX:0,   driftY:0,  easing:"fast",   desc:"STRAIGHT HEAT"},
+  // Curveball: slow start, drifts hard sideways, drops late
+  {name:"CURVEBALL",color:"#00e5cc", frames:115, driftX:48,  driftY:22, easing:"curve",  desc:"BREAKS HARD"},
+  // Changeup: looks like fastball speed then SLOWS dramatically mid-flight
+  {name:"CHANGEUP", color:"#ff8800", frames:145, driftX:8,   driftY:8,  easing:"change", desc:"SPEED TRICK"},
+  // Slider: straight until 70% then cuts sharply late
+  {name:"SLIDER",   color:"#ff3860", frames:88,  driftX:-42, driftY:5,  easing:"slider", desc:"LATE CUT"},
 ];
 
 function getPitchPool(round){
@@ -344,12 +348,47 @@ function update(){
 
 function getPitchPos(p){
   const t=Math.min(1,p.frame/p.type.frames);
-  const ease=t*t*(3-2*t); // smooth step
+  let ease, sizeEase;
+
+  if(p.type.easing==="fast"){
+    // Stays small/slow then rockets toward you in final 30%
+    ease=t<0.7 ? t*t*0.4 : 0.4+(t-0.7)/0.3*0.6;
+    sizeEase=t<0.65 ? t*0.3 : 0.195+(t-0.65)/0.35*0.805;
+  } else if(p.type.easing==="curve"){
+    // Smooth arc, drift accelerates in second half
+    ease=t*t*(3-2*t);
+    const driftEase=t<0.5 ? t*t*0.15 : 0.075+(t-0.5)*(t-0.5)*3.7;
+    const landX=ZONE_CX+p.type.driftX*Math.min(driftEase,1);
+    const landY=ZONE_CY+p.type.driftY*ease;
+    const x=VANISH_X+(landX-VANISH_X)*ease;
+    const y=VANISH_Y+(landY-VANISH_Y)*ease;
+    const r=1.5+ease*17;
+    return{x,y,r,t};
+  } else if(p.type.easing==="change"){
+    // Looks fast (steep ease) then flattens = appears to slow down
+    ease=t<0.45 ? t*t*2.2 : Math.min(0.45+t*t*0.55,1);
+    sizeEase=ease;
+  } else if(p.type.easing==="slider"){
+    // Straight until 68% then cuts hard sideways
+    ease=t*t*(3-2*t);
+    const cutT=t<0.68 ? 0 : ((t-0.68)/0.32);
+    const driftEase=cutT*cutT*(3-2*cutT);
+    const landX=ZONE_CX+p.type.driftX*driftEase;
+    const landY=ZONE_CY+p.type.driftY*ease;
+    const x=VANISH_X+(landX-VANISH_X)*ease;
+    const y=VANISH_Y+(landY-VANISH_Y)*ease;
+    const r=1.5+ease*17;
+    return{x,y,r,t};
+  } else {
+    ease=t*t*(3-2*t);
+    sizeEase=ease;
+  }
+
   const landX=ZONE_CX+p.type.driftX;
   const landY=ZONE_CY+p.type.driftY;
   const x=VANISH_X+(landX-VANISH_X)*ease;
   const y=VANISH_Y+(landY-VANISH_Y)*ease;
-  const r=1.5+ease*17;
+  const r=1.5+(sizeEase||ease)*17;
   return{x,y,r,t};
 }
 
