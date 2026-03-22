@@ -195,21 +195,23 @@ function renderTable(tbodyId,rows,showGame){
 
 // Auto-read version from each game file
 async function loadGameVersions(){
+  const d=new Date();
+  const mon=d.toLocaleDateString("en-US",{month:"short"}).toUpperCase();
+  const yr=d.getFullYear();
   for(const g of GAMES){
     try{
-      const r=await fetch(g.file+"?nocache="+Date.now());
+      const r=await fetch(g.file+"?v="+Date.now());
+      if(!r.ok)continue; // don't touch the element if fetch fails
       const text=await r.text();
       const match=text.match(/const GAME_VERSION="([^"]+)"/);
       const el=document.getElementById("ver-"+g.id);
       if(el&&match){
-        const d=new Date();
-        const mon=d.toLocaleDateString("en-US",{month:"short"}).toUpperCase();
-        const yr=d.getFullYear();
         el.textContent="v"+match[1]+" · "+mon+" "+yr;
-      } else if(el){
-        el.textContent="";
       }
-    }catch(e){}
+      // if no match found, leave the fallback text in place
+    }catch(e){
+      // network error — leave fallback text in place
+    }
   }
 }
 
@@ -264,7 +266,10 @@ function switchTab(id){
   document.getElementById("tab-"+id).classList.add("active");
 }
 
-function goGame(file){window.location.href=file;}
+function goGame(file){
+  // Append cache-busting timestamp so browser always loads fresh
+  window.location.href=file+"?v="+Date.now();
+}
 loadAll();
 loadGameVersions();
 </script>
