@@ -183,13 +183,7 @@ function startGame(){
 }
 
 const SKY_COLORS=[["#1a1a4a","#2a1a5a"],["#1a2a5a","#0a1a3a"],["#2a1a3a","#1a0a2a"],["#3a1a1a","#2a0a1a"],["#1a1a1a","#0a0a0a"]];
-const PU_TYPES=[
-  {type:"boots", label:"ROCKET BOOTS!", color:"#00ff88",emoji:"👟"},
-  {type:"glove", label:"STICKY GLOVE!", color:"#ffe600",emoji:"🧤"},
-  {type:"slow",  label:"TIME SLOW!",   color:"#4a4aff",emoji:"⏱"},
-  {type:"bonus", label:"BONUS POINTS!",color:"#ff8800",emoji:"⭐"},
-  {type:"magnet",label:"BALL MAGNET!", color:"#ff3860",emoji:"🧲"},
-];
+const PU_TYPES=[{type:"boots",label:"ROCKET BOOTS!",color:"#00ff88",emoji:"👟"},{type:"glove",label:"STICKY GLOVE!",color:"#ffe600",emoji:"🧤"},{type:"slow",label:"TIME SLOW!",color:"#4a4aff",emoji:"⏱"},{type:"bonus",label:"BONUS +500!",color:"#ff8800",emoji:"⭐"},{type:"magnet",label:"BALL MAGNET!",color:"#ff3860",emoji:"🧲"}];
 
 function initGame(){
   cancelAnimationFrame(raf);
@@ -221,12 +215,8 @@ function spawnBall(){
   // vy chosen so ball reaches GROUND_Y from y=20 in tof frames with gravity arc
   const gravity=0.015;
   const vy=(GROUND_Y-20)/tof - gravity*tof/2;
-  // Ball types: fly (normal), liner (fast ground), popup (high arc), golden (3x pts), hot (5x pts)
   const roll=Math.random();
-  const type=roll<(gs.wave>=5?0.07:0.03)?"hot":
-              roll<(gs.wave>=3?0.16:0.07)?"golden":
-              roll<0.26?"liner":
-              roll<0.36?"popup":"fly";
+  const type=roll<(gs.wave>=5?0.07:0.03)?"hot":roll<(gs.wave>=3?0.16:0.07)?"golden":roll<0.25?"liner":roll<0.35?"popup":"fly";
   gs.balls.push({x:startX,y:20,vx,vy,arc:gravity,r:7,type,caught:false,dropped:false,trail:[],landX});
 }
 
@@ -356,12 +346,12 @@ function update(){
 
   // Spawn
   gs.spawnTimer++;
-  const interval=Math.max(48,95-(gs.wave-1)*7); // higher floor, slower ramp
+  const interval=Math.max(50,95-(gs.wave-1)*7);
   if(gs.spawnTimer>=interval){
     gs.spawnTimer=0;
     spawnBall();
-    if(gs.wave>=4&&Math.random()<0.25)spawnBall(); // second ball wave 4+
-    if(gs.wave>=7&&Math.random()<0.18)spawnBall(); // third ball wave 7+
+    if(gs.wave>=4&&Math.random()<0.22)spawnBall();
+    if(gs.wave>=7&&Math.random()<0.15)spawnBall();
   }
 
   // Normal catch radius vs dive catch radius
@@ -370,15 +360,7 @@ function update(){
   const catchR=p.diving?diveR:normalR;
 
   // Ball updates
-  // Magnet pulls nearby balls toward player
-  if(p.magnet>0){
-    gs.balls.forEach(b=>{
-      if(b.caught||b.dropped)return;
-      const dx=p.x-b.x,dy=p.y-b.y;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<180){b.vx+=dx/dist*0.4;b.vy+=dy/dist*0.25;}
-    });
-  }
+  if(p.magnet>0){gs.balls.forEach(b=>{if(b.caught||b.dropped)return;const mdx=p.x-b.x,mdy=p.y-b.y;const md=Math.sqrt(mdx*mdx+mdy*mdy);if(md<200&&md>1){b.vx+=mdx/md*0.35;b.vy+=mdy/md*0.2;}});}
   gs.balls.forEach(ball=>{
     if(ball.caught||ball.dropped)return;
     ball.trail.push({x:ball.x,y:ball.y});
@@ -401,12 +383,12 @@ function update(){
         gs.score+=pts;
         gs.waveScore++;
         p.catchAnim=22;
-        spawnParticles(ball.x,ball.y,ball.type==="golden"?"#ffe600":ball.type==="hot"?"#ff3860":isDive?"#ffe600":"#00ff88",isDive?14:8);
-        const typeLabel=ball.type==="golden"?" 🌟":ball.type==="hot"?" 🔥":"";
-        const msg=isDive?"DIVING CATCH!"+typeLabel+" +"+pts:gs.combo>=3?"COMBO x"+gs.combo+typeLabel+" +"+pts:typeLabel+" +"+pts;
+        spawnParticles(ball.x,ball.y,isDive?"#ffe600":"#00ff88",isDive?14:8);
+        const tLabel=ball.type==="golden"?" 🌟":ball.type==="hot"?" 🔥":"";
+        const msg=isDive?"DIVING CATCH!"+tLabel+" +"+pts:gs.combo>=3?"COMBO x"+gs.combo+tLabel+" +"+pts:tLabel+" +"+pts;
         gs.flashMsg={text:msg,ttl:70,color:ball.type==="golden"?"#ffe600":ball.type==="hot"?"#ff3860":isDive?"#ffe600":"#00ff88"};
         updateHUD();
-        if(Math.random()<0.18){const pu=PU_TYPES[Math.floor(Math.random()*PU_TYPES.length)];gs.powerups.push({x:ball.x,y:ball.y,vy:1.2,...pu,w:30,h:22});}
+        if(Math.random()<0.16){const pu=PU_TYPES[Math.floor(Math.random()*PU_TYPES.length)];gs.powerups.push({x:ball.x,y:ball.y,vy:1.2,...pu,w:30,h:22});}
       }
     }
 
@@ -427,7 +409,7 @@ function update(){
   if(gs.waveScore>=gs.waveTarget){
     gs.wave++;gs.waveScore=0;
     gs.waveTarget=8+gs.wave*2;
-    gs.ballSpeed=Math.min(3.8,2.0+(gs.wave-1)*0.22); // smoother ramp, lower cap
+    gs.ballSpeed=Math.min(3.6,2.0+(gs.wave-1)*0.18);
     gs.flashMsg={text:"WAVE "+gs.wave+"! 🏟",ttl:120,color:"#ffe600"};
     updateHUD();
   }
@@ -447,9 +429,9 @@ function update(){
 
 function applyPU(type){
   if(type==="boots") gs.player.boots=350;
-  else if(type==="glove")  gs.player.glove=350;
-  else if(type==="slow")   gs.player.slow=350;
-  else if(type==="bonus")  {gs.score+=500;updateHUD();gs.flashMsg={text:"⭐ BONUS +500!",ttl:80,color:"#ff8800"};}
+  else if(type==="glove") gs.player.glove=350;
+  else if(type==="slow") gs.player.slow=350;
+  else if(type==="bonus"){gs.score+=500;updateHUD();}
   else if(type==="magnet") gs.player.magnet=300;
 }
 function spawnParticles(x,y,color,count){for(let i=0;i<count;i++)gs.particles.push({x,y,vx:(Math.random()-.5)*7,vy:(Math.random()-.5)*7-2,life:25+Math.random()*15,color,size:3+Math.random()*3});}
@@ -496,15 +478,6 @@ function draw(){
   });
 
   // Ball shadows on grass
-  // Magnet pulls nearby balls toward player
-  if(p.magnet>0){
-    gs.balls.forEach(b=>{
-      if(b.caught||b.dropped)return;
-      const dx=p.x-b.x,dy=p.y-b.y;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<180){b.vx+=dx/dist*0.4;b.vy+=dy/dist*0.25;}
-    });
-  }
   gs.balls.forEach(ball=>{
     if(ball.caught||ball.dropped)return;
     const shadowY=GROUND_Y;
@@ -516,15 +489,6 @@ function draw(){
   });
 
   // Balls
-  // Magnet pulls nearby balls toward player
-  if(p.magnet>0){
-    gs.balls.forEach(b=>{
-      if(b.caught||b.dropped)return;
-      const dx=p.x-b.x,dy=p.y-b.y;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<180){b.vx+=dx/dist*0.4;b.vy+=dy/dist*0.25;}
-    });
-  }
   gs.balls.forEach(ball=>{
     if(ball.caught||ball.dropped)return;
     // Trail
@@ -539,8 +503,8 @@ function draw(){
     ctx.beginPath();ctx.arc(ball.x-1.5,ball.y,ball.r*.5,-.6,.6);ctx.stroke();
     ctx.beginPath();ctx.arc(ball.x+1.5,ball.y,ball.r*.5,Math.PI-.6,Math.PI+.6);ctx.stroke();
     if(ball.type==="liner"){ctx.font='5px "Press Start 2P",monospace';ctx.fillStyle="#ff3860";ctx.textAlign="center";ctx.fillText("LINE!",ball.x,ball.y-12);ctx.textAlign="left";}
-    if(ball.type==="golden"){ctx.font='6px "Press Start 2P",monospace';ctx.fillStyle="#ffe600";ctx.textAlign="center";ctx.fillText("3X!",ball.x,ball.y-12);ctx.textAlign="left";}
-    if(ball.type==="hot"){ctx.font='6px "Press Start 2P",monospace';ctx.fillStyle="#ff3860";ctx.textAlign="center";ctx.fillText("5X!",ball.x,ball.y-12);ctx.textAlign="left";}
+    if(ball.type==="golden"){ctx.font='6px "Press Start 2P",monospace';ctx.fillStyle="#ffe600";ctx.shadowColor="#ffe600";ctx.shadowBlur=10;ctx.textAlign="center";ctx.fillText("3X!",ball.x,ball.y-12);ctx.shadowBlur=0;ctx.textAlign="left";}
+    if(ball.type==="hot"){ctx.font='6px "Press Start 2P",monospace';ctx.fillStyle="#ff3860";ctx.shadowColor="#ff3860";ctx.shadowBlur=10;ctx.textAlign="center";ctx.fillText("5X!",ball.x,ball.y-12);ctx.shadowBlur=0;ctx.textAlign="left";}
   });
 
   // Player
