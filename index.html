@@ -83,7 +83,7 @@
         <span class="card-tag tag-live">● LIVE</span>
         <span class="card-top-score" id="top-shark-batter">TOP: —</span>
       </div>
-      <div class="card-version">v1.3 · MAR 2026</div>
+      <div class="card-version" id="ver-shark-batter">v?.? · loading</div>
       <span class="play-btn">▶ PLAY</span>
     </div>
 
@@ -95,7 +95,7 @@
         <span class="card-tag tag-live">● LIVE</span>
         <span class="card-top-score" id="top-outfield-blitz">TOP: —</span>
       </div>
-      <div class="card-version">v1.3 · MAR 2026</div>
+      <div class="card-version" id="ver-outfield-blitz">v?.? · loading</div>
       <span class="play-btn">▶ PLAY</span>
     </div>
 
@@ -107,7 +107,7 @@
         <span class="card-tag tag-live">● LIVE</span>
         <span class="card-top-score" id="top-homerun-derby">TOP: —</span>
       </div>
-      <div class="card-version">v1.4 · MAR 2026</div>
+      <div class="card-version" id="ver-homerun-derby">v?.? · loading</div>
       <span class="play-btn">▶ PLAY</span>
     </div>
 
@@ -119,7 +119,7 @@
         <span class="card-tag tag-live">● LIVE</span>
         <span class="card-top-score" id="top-pitch-perfect">TOP: —</span>
       </div>
-      <div class="card-version">v1.3 · MAR 2026</div>
+      <div class="card-version" id="ver-pitch-perfect">v?.? · loading</div>
       <span class="play-btn">▶ PLAY</span>
     </div>
 
@@ -193,6 +193,26 @@ function renderTable(tbodyId,rows,showGame){
   </tr>`).join("");
 }
 
+// Auto-read version from each game file
+async function loadGameVersions(){
+  for(const g of GAMES){
+    try{
+      const r=await fetch(g.file+"?nocache="+Date.now());
+      const text=await r.text();
+      const match=text.match(/const GAME_VERSION="([^"]+)"/);
+      const el=document.getElementById("ver-"+g.id);
+      if(el&&match){
+        const d=new Date();
+        const mon=d.toLocaleDateString("en-US",{month:"short"}).toUpperCase();
+        const yr=d.getFullYear();
+        el.textContent="v"+match[1]+" · "+mon+" "+yr;
+      } else if(el){
+        el.textContent="";
+      }
+    }catch(e){}
+  }
+}
+
 async function loadAll(){
   // Weekly
   const weekly=await sbFetch(`scores?week_start=eq.${weekStart}&order=score.desc&limit=15&select=player_name,game_id,score`);
@@ -246,6 +266,7 @@ function switchTab(id){
 
 function goGame(file){window.location.href=file;}
 loadAll();
+loadGameVersions();
 </script>
 </body>
 </html>
