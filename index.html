@@ -95,7 +95,7 @@
         <span class="card-tag tag-live">● LIVE</span>
         <span class="card-top-score" id="top-outfield-blitz">TOP: —</span>
       </div>
-      <div class="card-version" id="ver-outfield-blitz">v1.3 · MAR 2026</div>
+      <div class="card-version" id="ver-outfield-blitz">v1.4 · MAR 2026</div>
       <span class="play-btn">▶ PLAY</span>
     </div>
 
@@ -119,7 +119,7 @@
         <span class="card-tag tag-live">● LIVE</span>
         <span class="card-top-score" id="top-pitch-perfect">TOP: —</span>
       </div>
-      <div class="card-version" id="ver-pitch-perfect">v1.3 · MAR 2026</div>
+      <div class="card-version" id="ver-pitch-perfect">v1.4 · MAR 2026</div>
       <span class="play-btn">▶ PLAY</span>
     </div>
 
@@ -201,16 +201,14 @@ async function loadGameVersions(){
   for(const g of GAMES){
     try{
       const r=await fetch(g.file+"?v="+Date.now());
-      if(!r.ok)continue; // don't touch the element if fetch fails
+      if(!r.ok)continue;
       const text=await r.text();
       const match=text.match(/const GAME_VERSION="([^"]+)"/);
       const el=document.getElementById("ver-"+g.id);
-      if(el&&match){
-        el.textContent="v"+match[1]+" · "+mon+" "+yr;
-      }
-      // if no match found, leave the fallback text in place
+      if(el&&match)el.textContent="v"+match[1]+" · "+mon+" "+yr;
+      // if no match, leave fallback text in place
     }catch(e){
-      // network error — leave fallback text in place
+      // network error — leave fallback in place
     }
   }
 }
@@ -266,13 +264,9 @@ function switchTab(id){
   document.getElementById("tab-"+id).classList.add("active");
 }
 
-function goGame(file){
-  // Append cache-busting timestamp so browser always loads fresh
-  window.location.href=file+"?v="+Date.now();
-}
+function goGame(file){window.location.href=file+"?v="+Date.now();}
 loadAll();
 loadGameVersions();
 </script>
 </body>
 </html>
-
