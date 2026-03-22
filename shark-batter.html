@@ -262,14 +262,64 @@ function buildBricks(wave){
   const totalW=8*bW+7*gapX;
   const startX=(CW-totalW)/2,startY=48;
   const bricks=[];
-  const layouts=[
-    ()=>{for(let r=0;r<4;r++)for(let c=0;c<8;c++)bricks.push({r,c,hp:1,maxHp:1,color:r<2?"#00e5cc":"#4a4aff"});},
-    ()=>{[[0,0,0,1,1,0,0,0],[0,0,1,1,1,1,0,0],[0,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0],[0,0,1,1,1,1,0,0]].forEach((row,r)=>row.forEach((v,c)=>{if(v)bricks.push({r,c,hp:1,maxHp:1,color:r<3?"#ffe600":"#ff8800"});}));},
-    ()=>{for(let r=0;r<5;r++)for(let c=0;c<8;c++){const hp=r===0?2:1;bricks.push({r,c,hp,maxHp:hp,color:r===0?"#ff3860":"#00ff88"});}},
-    ()=>{[[0,0,0,1,1,0,0,0],[0,0,1,0,0,1,0,0],[0,1,0,0,0,0,1,0],[1,0,0,0,0,0,0,1],[0,1,0,0,0,0,1,0],[0,0,1,1,1,1,0,0]].forEach((row,r)=>row.forEach((v,c)=>{if(v)bricks.push({r,c,hp:2,maxHp:2,color:"#ffe600"});}));},
-    ()=>{for(let r=0;r<6;r++)for(let c=0;c<8;c++){const hp=r<2?3:r<4?2:1;bricks.push({r,c,hp,maxHp:hp,color:["#ff3860","#ff8800","#ffe600","#00ff88","#00e5cc","#4a4aff"][r]});}}
+
+  // Random color palette picked fresh each wave
+  const PALETTES=[
+    ["#00e5cc","#4a4aff","#ffe600","#ff8800"],
+    ["#ff3860","#ff8800","#ffe600","#00ff88"],
+    ["#00ff88","#00e5cc","#4a4aff","#ffffff"],
+    ["#ffe600","#ff3860","#00e5cc","#ff8800"],
+    ["#ff8800","#ffe600","#00ff88","#4a4aff"],
+    ["#4a4aff","#ff3860","#00e5cc","#ffe600"],
   ];
-  (layouts[Math.min(wave-1,4)])();
+  const pal=PALETTES[Math.floor(Math.random()*PALETTES.length)];
+  const rc=()=>pal[Math.floor(Math.random()*pal.length)];
+  const rowColor=(r)=>pal[r%pal.length];
+
+  // Tier based on wave — same difficulty but random layout each play
+  const tier=wave<=2?1:wave<=4?2:wave<=6?3:wave<=8?4:5;
+
+  if(tier===1){
+    const opts=[
+      ()=>{for(let r=0;r<3;r++)for(let c=0;c<8;c++)bricks.push({r,c,hp:1,maxHp:1,color:rowColor(r)});},
+      ()=>{for(let r=0;r<4;r++)for(let c=0;c<8;c++)if((r+c)%2===0)bricks.push({r,c,hp:1,maxHp:1,color:rc()});},
+      ()=>{[[0,0,0,0,0,0,0,0],[0,1,0,0,0,0,1,0],[0,1,1,0,0,1,1,0],[0,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1]].forEach((row,r)=>row.forEach((v,c)=>{if(v)bricks.push({r,c,hp:1,maxHp:1,color:rowColor(r)});}));},
+      ()=>{for(let r=0;r<3;r++)for(let c=0;c<8;c++)if((c+r)%3!==0)bricks.push({r,c,hp:1,maxHp:1,color:rowColor(r)});},
+    ];
+    opts[Math.floor(Math.random()*opts.length)]();
+  } else if(tier===2){
+    const opts=[
+      ()=>{[[0,0,0,1,1,0,0,0],[0,0,1,1,1,1,0,0],[0,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,1],[0,1,1,1,1,1,1,0],[0,0,1,1,1,1,0,0]].forEach((row,r)=>row.forEach((v,c)=>{if(v)bricks.push({r,c,hp:1,maxHp:1,color:rowColor(r)});}));},
+      ()=>{for(let r=0;r<4;r++)for(let c=0;c<8;c++){const hp=r===0?2:1;bricks.push({r,c,hp,maxHp:hp,color:r===0?pal[0]:rowColor(r)});}},
+      ()=>{for(let r=0;r<5;r++)for(let c=0;c<8;c++)if(c%2===0)bricks.push({r,c,hp:2,maxHp:2,color:pal[0]});else bricks.push({r,c,hp:1,maxHp:1,color:pal[1]});},
+      ()=>{[[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]].forEach((row,r)=>row.forEach((v,c)=>{if(v)bricks.push({r,c,hp:r===0||r===4?2:1,maxHp:r===0||r===4?2:1,color:rowColor(r)});}));},
+    ];
+    opts[Math.floor(Math.random()*opts.length)]();
+  } else if(tier===3){
+    const opts=[
+      ()=>{for(let r=0;r<5;r++)for(let c=0;c<8;c++){const hp=r<2?3:r<4?2:1;bricks.push({r,c,hp,maxHp:hp,color:rowColor(r)});}},
+      ()=>{for(let r=0;r<5;r++)for(let c=0;c<8;c++){const hp=(r+c)%2===0?3:2;bricks.push({r,c,hp,maxHp:hp,color:(r+c)%2===0?pal[0]:pal[1]});}},
+      ()=>{[[1,1,1,0,0,1,1,1],[1,1,1,0,0,1,1,1],[1,1,0,0,0,0,1,1],[1,0,0,0,0,0,0,1],[1,1,0,0,0,0,1,1],[1,1,1,0,0,1,1,1]].forEach((row,r)=>row.forEach((v,c)=>{if(v){const hp=r<2?3:2;bricks.push({r,c,hp,maxHp:hp,color:rowColor(r)});}}));},
+      ()=>{[[0,0,0,1,1,0,0,0],[0,0,1,0,0,1,0,0],[0,1,0,0,0,0,1,0],[1,0,0,0,0,0,0,1],[0,1,0,0,0,0,1,0],[0,0,1,0,0,1,0,0],[0,0,0,1,1,0,0,0]].forEach((row,r)=>row.forEach((v,c)=>{if(v)bricks.push({r,c,hp:2,maxHp:2,color:rc()});}));},
+    ];
+    opts[Math.floor(Math.random()*opts.length)]();
+  } else if(tier===4){
+    const opts=[
+      ()=>{[[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,0],[1,1,1,1,1,1,1,0],[0,0,0,0,0,0,1,1],[0,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]].forEach((row,r)=>row.forEach((v,c)=>{if(v)bricks.push({r,c,hp:3,maxHp:3,color:rowColor(r)});}));},
+      ()=>{[[0,0,1,1,1,1,0,0],[0,0,1,1,1,1,0,0],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[0,0,1,1,1,1,0,0],[0,0,1,1,1,1,0,0]].forEach((row,r)=>row.forEach((v,c)=>{if(v)bricks.push({r,c,hp:3,maxHp:3,color:rowColor(r)});}));},
+      ()=>{for(let r=0;r<7;r++)for(let c=0;c<8;c++){const hp=r<3?3:2;bricks.push({r,c,hp,maxHp:hp,color:rowColor(r)});}},
+      ()=>{for(let r=0;r<6;r++)for(let c=0;c<8;c++){const border=r===0||r===5||c===0||c===7;bricks.push({r,c,hp:border?3:2,maxHp:border?3:2,color:border?pal[0]:pal[2]});}},
+    ];
+    opts[Math.floor(Math.random()*opts.length)]();
+  } else {
+    const opts=[
+      ()=>{for(let r=0;r<7;r++)for(let c=0;c<8;c++){const hp=Math.ceil(Math.random()*3);bricks.push({r,c,hp,maxHp:hp,color:rc()});}},
+      ()=>{for(let r=0;r<6;r++)for(let c=0;c<8;c++)if(Math.random()>0.2)bricks.push({r,c,hp:3,maxHp:3,color:rc()});},
+      ()=>{for(let r=0;r<8;r++)for(let c=0;c<8;c++){const hp=r<2?3:Math.ceil(Math.random()*3);bricks.push({r,c,hp,maxHp:hp,color:rc()});}},
+    ];
+    opts[Math.floor(Math.random()*opts.length)]();
+  }
+
   return bricks.map(b=>({...b,x:startX+b.c*(bW+gapX),y:startY+b.r*(bH+gapY),w:bW,h:bH,alive:true}));
 }
 
